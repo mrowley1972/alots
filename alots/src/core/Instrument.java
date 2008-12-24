@@ -12,33 +12,28 @@ package core;
 import java.util.*;
 
 public class Instrument {
-	/*Two books implemented as Vectors, as these are thread-safe
-	 * and since we have multiple engines updating them, this is necessary
+	/*
+	 * Books implemented as a Vector, because it is thread-safe and increment size can be set
 	 */
 	
 	List<Order> bidLimitOrders = new Vector<Order>();
 	List<Order> askLimitOrders = new Vector<Order>();
-	List<Order> executedOrders = new Vector<Order>();
+	
+	//A book of fully filled orders, i.e. order.isFilled() is TRUE
+	List<Order> filledOrders = new Vector<Order>();
+	
+	//A book of partially filled orders, when fully filled moved into filledOrders
+	List<Order> partiallyFilledOrders = new Vector<Order>();
 	
 	private String tickerSymbol;
-	private double lastTradedPrice;
-	// Bid and ask volumes are totals from the book
-	private long bidVolume;
-	private long askVolume;
+	private double lastTradedPrice;	
 	
-	//Buy and sell volumes are the actual executed volumes
-	private long buyVolume;
-	private long sellVolume;
-	
-	private double averageBuyPrice;
-	private double averageSellPrice;
-	private double bidVWAP;
-	private double askVWAP;
 	
 	public Instrument(String tickerSymbol){
 		this.tickerSymbol = tickerSymbol.toUpperCase();
 	}
 	
+	//These are just delegating methods, the actual implementation is in BooksEngine
 	protected boolean processNewOrder(Order order){
 		//dummy return
 		return true;
@@ -60,33 +55,133 @@ public class Instrument {
 		return tickerSymbol;
 	}
 	
+	/*
+	 * Some of the methods below should calculate returning values on the fly, to make sure that
+	 * the latest values are returned. This eliviates the need to update the instance variables every time
+	 * some trade is carried out, since these may not be needed all the time 
+	 */
+	
+	/*
+	 * Since orders are executed sequentially, last intraday price == order's last executed price
+	 * This is set everytime an order is executed on this instrument during matching
+	 */
 	public double getLastTradedPrice(){
 		return lastTradedPrice;
 	}
 	
 	public long getBidVolume(){
-		return bidVolume;
+		long volume = 0;
+		for(Order order: bidLimitOrders){
+			volume += order.getTotalVolume();
+		}
+		return volume;
 	}
+
 	public long getAskVolume(){
-		return askVolume;
-	}
-	public long getBuyVolume(){
-		return buyVolume;
-	}
-	public long getSellVolume(){
-		return sellVolume;
+		long volume = 0;
+		for(Order order: askLimitOrders){
+			volume += order.getTotalVolume();
+		}
+		return volume;
 	}
 	
+	/*
+	 * buy volume = total bought quantities from filled orders + executed bought quantities from partially filled orders
+	 */
+	public long getBuyVolume(){
+		long volume = 0;
+		
+		for(Order order: filledOrders){
+			if(order.side() == core.Order.Side.BUY)
+				volume += order.getTotalVolume();
+		}
+		for(Order order: partiallyFilledOrders){
+			if(order.side() == core.Order.Side.BUY)
+				volume += order.getExecutedVolume();
+		}
+		return volume;
+	}
+	
+	/*
+	 * sell volume = total sold quantities from filled orders + executed sold quantities from partially filled orders	 
+	 */
+	public long getSellVolume(){
+		long volume = 0;
+		
+		for(Order order: filledOrders){
+			if(order.side() == core.Order.Side.SELL)
+				volume += order.getTotalVolume();
+		}
+		for(Order order: partiallyFilledOrders){
+			if(order.side() == core.Order.Side.SELL)
+				volume += order.getExecutedVolume();
+		}
+		return volume;	
+	}
+	
+	
 	public double getAverageBuyPrice(){
-		return averageBuyPrice;
+		long orderVolume = 0;
+		double averagePrice = 0.0;
+		
+		for(Order order: filledOrders){
+			if(order.side() == core.Order.Side.BUY){
+				averagePrice += order.getAverageExecutedPrice();
+				orderVolume += order.getTotalVolume();
+			}
+		}
+		
+		for(Order order: partiallyFilledOrders){
+			if(order.side() == core.Order.Side.BUY){
+				averagePrice += order.getAverageExecutedPrice();
+				orderVolume += order.getExecutedVolume();
+			}
+		}
+		
+		return averagePrice/(double)orderVolume;
 	}
+	
 	public double getAverageSellPrice(){
-		return averageSellPrice;
+		long orderVolume = 0;
+		double averagePrice = 0.0;
+		
+		for(Order order: filledOrders){
+			if(order.side() == core.Order.Side.SELL){
+				averagePrice += order.getAverageExecutedPrice();
+				orderVolume += order.getTotalVolume();
+			}
+		}
+		for(Order order: partiallyFilledOrders){
+			if(order.side() == core.Order.Side.SELL){
+				averagePrice += order.getAverageExecutedPrice();
+				orderVolume += order.getExecutedVolume();
+			}
+		}
+		
+		return averagePrice/(double)orderVolume;
 	}
+	
+	/*
+	 * VWAP of all outstanding orders, both partially filled and not filled
+	 */
 	public double getBidVWAP(){
-		return bidVWAP;
+		long volume = 0;
+		double price = 0.0;
+		for(Order order: bidLimitOrders){
+			volume += order.getTotalVolume();
+			price += order.getLimitPrice();
+		}
+		return price/(double)volume;
 	}
+	
 	public double getAskVWAP(){
-		return askVWAP;
+		long volume = 0;
+		double price = 0.0;
+		for(Order order: askLimitOrders){
+			volume += order.getTotalVolume();
+			price += order.getLimitPrice();
+		}
+		return price/(double)volume;
 	}
+	
 }
