@@ -13,12 +13,46 @@ package core;
 import java.util.*;
 
 public class Order {
+	/*
+	 * Holds a history of all fills that took place
+	 */
+	List<OrderFill> fills;
 
 	/*
 	 * Two types of enums to ensure type safety 
 	 */
 	public enum Side{ BUY, SELL}
 	public enum Type{ LIMIT, MARKET}
+	
+	/*
+	 * A class to hold an order fill for this order only
+	 */
+	private class OrderFill{
+		long volume;
+		double price;
+		Date fillTime;
+		
+		protected OrderFill(long volume, double price, Date fillTime){
+			this.volume = volume;
+			this.price = price;
+			this.fillTime = fillTime;
+		}
+		
+		protected long getVolume(){
+			return volume;
+		}
+		protected double getPrice(){
+			return price;
+		}
+		protected Date getFillTime(){
+			return fillTime;
+		}
+		
+		public String toString(){
+			return volume + " @$" + price + " at " + fillTime;
+		}
+		
+	}
 	
 	private final Side side;
 	private final Type type;
@@ -28,26 +62,22 @@ public class Order {
 	private Instrument instrument;
 	private Date entryTime;
 	private double limitPrice;
-	private long totalQuantity;
-	private long openQuantity;
-	private long executedQuantity;
-	
-	private double averageExecutedPrice;
-	private double lastExecutedPrice;
-	private long lastExecutedQuantity;
+	private long totalVolume;
+	private long openVolume;
+	private long executedVolume;
 	
 	private static int nextID = 10000;
 	
-	public Order(int clientID, Instrument instrument, Side side, Type type, long totalQuantity, double limitPrice){
+	public Order(int clientID, Instrument instrument, Side side, Type type, long totalVolume, double limitPrice){
 		this.clientID = clientID;
 		this.instrument = instrument;
 		this.side = side;
 		this.type = type;
-		this.totalQuantity = totalQuantity;
+		this.totalVolume = totalVolume;
 		this.limitPrice = limitPrice;
 		
-		openQuantity = totalQuantity;
-		executedQuantity = 0;
+		openVolume = totalVolume;
+		executedVolume = 0;
 		orderID = Order.nextID++;
 		
 		/*The entry time is measured to the nearest millisecond, which is important when multiple agents 
@@ -55,30 +85,38 @@ public class Order {
 		 * the same
 		 */
 		this.entryTime = new Date();
+		fills = new Vector<OrderFill>();
 	}
 	
-	public Type orderType(){ return type;}
-	public Side orderSide(){ return side;}
+	public Type type(){ 
+		return type;
+	}
+	
+	public Side side(){ 
+		return side;
+	}
 	
 	
 	public boolean isFilled(){
-		return executedQuantity == totalQuantity;
+		return executedVolume == totalVolume;
 	}
 	public boolean isClosed(){
-		return openQuantity == 0;
+		return openVolume == 0;
 	}
-	
-	/*
-	 * This algorithm needs to be very careful about which orders it cancels, how it is removed 
-	 * and how the clients are notified
-	 */
 	
 	public void cancel(){
-		
+		openVolume = 0;
 	}
 	
-	public void execute(double price, long quantity){
-		
+	public void execute(long volume, double price){
+		OrderFill fill = new OrderFill(volume, price, new Date());
+		fills.add(fill);
+		openVolume -= volume;
+		executedVolume += volume;
+	}
+	
+	public Vector<OrderFill> getFills(){
+		return new Vector<OrderFill>(fills);
 	}
 	
 	public Instrument getInstrument(){
@@ -101,42 +139,54 @@ public class Order {
 		return entryTime;
 	}
 	
-	public long getTotalQuantity(){
-		return totalQuantity;
+	public long getTotalVolume(){
+		return totalVolume;
 	}
 	
-	public long getOpenQuantity(){
-		return openQuantity;
+	public long getOpenVolume(){
+		return openVolume;
 	}
 	
-	public long getExecutedQuantity(){
-		return executedQuantity;
+	public long getExecutedVolume(){
+		return executedVolume;
 	}
 	
 	/* TODO: need to decide how average executed price is calculated and whether we should store it or just
 	 * calculate on the fly everytime it's requested
 	 */
-	protected void setAverageExecutedPrice(){
-		
-	}
+	
 	public double getAverageExecutedPrice(){
-		return averageExecutedPrice;
+		double price = 0.0;
+		for(OrderFill fill: fills){
+			price += fill.price;
+		}
+		return price/fills.size();
 	}
 	
 	/* TODO: decide at what point the last executed price and last executed quantity is updated
-	 * 
 	 */
-	protected void setLastExecutedPrice(){
-		
-	}
+	
 	public double getLastExecutedPrice(){
-		return lastExecutedPrice;
+		return fills.get(fills.size()-1).getPrice();
 	}
 	
-	protected void setLastExecutedQuantity(){
-		
+	public long getLastExecutedVolume(){
+		return fills.get(fills.size()-1).getVolume();
 	}
-	public long getLastExecutedQuantity(){
-		return lastExecutedQuantity;
+	
+	public String toString(){
+		return "Instrument: " + instrument + " " + "Type: " + type().toString() + " " + "Side: " + side().toString() + " " + 
+			"Total Volume: " + totalVolume + " " + "Price: $" + limitPrice + " " + "Open Volume: " +
+						openVolume + " " + "Executed volume: " + executedVolume;
+	}
+	
+	
+	public int getNumberOfFills(){
+		return fills.size();
+	}
+	
+	public void printFills(){
+		for(OrderFill fill: fills)
+			System.out.println("\n" + fill.toString());
 	}
 }
