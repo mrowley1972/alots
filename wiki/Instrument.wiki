@@ -1,4 +1,4 @@
-#summary This page has all of the relevant development discussion.
+#summary This page has all of the Instrument class development discussion.
 
 = Introduction =
 
