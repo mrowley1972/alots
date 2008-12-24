@@ -19,6 +19,11 @@ public class Instrument {
 	List<Order> bidLimitOrders = new Vector<Order>();
 	List<Order> askLimitOrders = new Vector<Order>();
 	
+	/*
+	 * Very important that neither filledOrders nor partiallyFilledOrders contain duplicate orders.
+	 * All methods rely on these lists containing at most one object with the same orderID.
+	 */
+	
 	//A book of fully filled orders, i.e. order.isFilled() is TRUE
 	List<Order> filledOrders = new Vector<Order>();
 	
@@ -56,15 +61,10 @@ public class Instrument {
 	}
 	
 	/*
-	 * Some of the methods below should calculate returning values on the fly, to make sure that
-	 * the latest values are returned. This eliviates the need to update the instance variables every time
-	 * some trade is carried out, since these may not be needed all the time 
-	 */
-	
-	/*
 	 * Since orders are executed sequentially, last intraday price == order's last executed price
 	 * This is set everytime an order is executed on this instrument during matching
 	 */
+	
 	public double getLastTradedPrice(){
 		return lastTradedPrice;
 	}
@@ -84,6 +84,7 @@ public class Instrument {
 		}
 		return volume;
 	}
+	
 	
 	/*
 	 * buy volume = total bought quantities from filled orders + executed bought quantities from partially filled orders
@@ -182,6 +183,9 @@ public class Instrument {
 			price += order.getLimitPrice();
 		}
 		return price/(double)volume;
+	}
+	public String toString(){
+		return tickerSymbol;
 	}
 	
 }
