@@ -32,7 +32,7 @@ public class OrderTest {
 	@Test
 	public void verifyTotalVolumeAndLimitPrice(){
 		Assert.assertEquals(order.getTotalVolume(), 200);
-		Assert.assertEquals(order.getLimitPrice(), 15.0);
+		Assert.assertEquals(order.getPrice(), 15.0);
 	}
 	
 	@Test 
@@ -45,6 +45,7 @@ public class OrderTest {
 		Assert.assertEquals(order.isFilled(), false);
 		Assert.assertEquals(order.isClosed(), false);
 	}
+	
 	@Test (dependsOnMethods = {"verifyVolumeCalculations"})
 	public void verifyAverageCalculationsAndFills(){
 		Assert.assertEquals(order.getAverageExecutedPrice(), 12.5);

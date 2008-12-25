@@ -61,20 +61,25 @@ public class Order {
 	private long orderID;
 	private Instrument instrument;
 	private Date entryTime;
-	private double limitPrice;
+	private double price;
 	private long totalVolume;
 	private long openVolume;
 	private long executedVolume;
 	
 	private static int nextID = 10000;
 	
-	public Order(int clientID, Instrument instrument, Side side, Type type, long totalVolume, double limitPrice){
+	public Order(int clientID, Instrument instrument, Side side, Type type, long totalVolume, double price){
 		this.clientID = clientID;
 		this.instrument = instrument;
 		this.side = side;
 		this.type = type;
-		this.totalVolume = totalVolume;
-		this.limitPrice = limitPrice;
+		
+		if(totalVolume< 0)
+			this.totalVolume = 0;
+		else 
+			this.totalVolume = totalVolume;
+		
+		this.price = price;
 		
 		openVolume = totalVolume;
 		executedVolume = 0;
@@ -123,8 +128,8 @@ public class Order {
 		return instrument;
 	}
 	
-	public double getLimitPrice(){
-		return limitPrice;
+	public double getPrice(){
+		return price;
 	}
 	
 	public long getOrderID(){
@@ -176,7 +181,7 @@ public class Order {
 	
 	public String toString(){
 		return "Instrument: " + instrument + " " + "Type: " + type().toString() + " " + "Side: " + side().toString() + " " + 
-			"Total Volume: " + totalVolume + " " + "Price: $" + limitPrice + " " + "Open Volume: " +
+			"Total Volume: " + totalVolume + " " + "Price: $" + price + " " + "Open Volume: " +
 						openVolume + " " + "Executed volume: " + executedVolume;
 	}
 	
