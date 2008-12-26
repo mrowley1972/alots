@@ -30,13 +30,13 @@ public class Instrument {
 	private String tickerSymbol;
 	private double lastPrice;	
 	
-	public Instrument(String tickerSymbol){
+	public Instrument(String tickerSymbol, AbstractQueue<Order> updatedOrders){
 		this.tickerSymbol = tickerSymbol.toUpperCase();
 		bidLimitOrders = new Vector<Order>();
 		askLimitOrders = new Vector<Order>();
 		filledOrders = new Vector<Order>();
 		partiallyFilledOrders = new Vector<Order>();
-		bookEngine = new BookEngine(bidLimitOrders, askLimitOrders, filledOrders, partiallyFilledOrders);
+		bookEngine = new EquityBookEngine(bidLimitOrders, askLimitOrders, filledOrders, partiallyFilledOrders, updatedOrders);
 	}
 	
 	/*
@@ -84,13 +84,17 @@ public class Instrument {
 	public double getLastPrice(){
 		return lastPrice;
 	}
+	
+	protected void setLastPrice(double price){
+		lastPrice = price;
+	}
 	/*
 	 * Outstanding bid volume
 	 */
 	public long getBidVolume(){
 		long volume = 0;
 		for(Order order: bidLimitOrders){
-			volume += order.getOpenVolume();
+			volume += order.getOpenQuantity();
 		}
 		return volume;
 	}
@@ -101,7 +105,7 @@ public class Instrument {
 	public long getAskVolume(){
 		long volume = 0;
 		for(Order order: askLimitOrders){
-			volume += order.getOpenVolume();
+			volume += order.getOpenQuantity();
 		}
 		return volume;
 	}
@@ -119,7 +123,7 @@ public class Instrument {
 		}
 		for(Order order: partiallyFilledOrders){
 			if(order.side() == core.Order.Side.BUY)
-				volume += order.getExecutedVolume();
+				volume += order.getExecutedQuantity();
 		}
 		return volume;
 	}
@@ -136,7 +140,7 @@ public class Instrument {
 		}
 		for(Order order: partiallyFilledOrders){
 			if(order.side() == core.Order.Side.SELL)
-				volume += order.getExecutedVolume();
+				volume += order.getExecutedQuantity();
 		}
 		return volume;	
 	}

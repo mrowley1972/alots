@@ -1,4 +1,7 @@
 package tests;
+import java.util.AbstractQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+
 import core.*;
 
 import org.testng.annotations.*;
@@ -7,12 +10,13 @@ import org.testng.Assert;
 public class InstrumentTest {
 
 	Instrument instrument;
+	AbstractQueue<Order> queue = new LinkedBlockingQueue<Order>();
 	Order bOrder, bOrder2, bOrder3, bOrder4, bOrder5;
 	Order sOrder, sOrder2, sOrder3, sOrder4, sOrder5;
 	
 	@BeforeClass
 	public void setUp(){
-		instrument = new Instrument("GOOG");
+		instrument = new Instrument("GOOG", queue);
 	}
 	
 	@Test

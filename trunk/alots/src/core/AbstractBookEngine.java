@@ -12,5 +12,5 @@ public abstract class AbstractBookEngine {
 	
 	protected abstract void insertOrder(Order order);
 	
-	protected abstract void matchOrder(Order order, List<Order> book);
+	protected abstract void matchOrder(Order order);
 }

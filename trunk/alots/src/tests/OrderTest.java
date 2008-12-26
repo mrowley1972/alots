@@ -1,4 +1,7 @@
 package tests;
+import java.util.AbstractQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+
 import core.*;
 
 import org.testng.Assert;
@@ -7,11 +10,12 @@ import org.testng.annotations.*;
 public class OrderTest {
 	
 	Instrument instrument;
+	AbstractQueue<Order> queue = new LinkedBlockingQueue<Order>();
 	Order order;
 	
 	@BeforeClass
 	public void setUp(){
-		instrument = new Instrument("GOOG");
+		instrument = new Instrument("GOOG", queue);
 		order = new Order(1, instrument, core.Order.Side.BUY, core.Order.Type.LIMIT, 200, 15);
 	}
 	
@@ -39,9 +43,9 @@ public class OrderTest {
 	public void verifyVolumeCalculations(){
 		order.execute(20, 14);
 		order.execute(30, 11);
-		Assert.assertEquals(order.getExecutedVolume(), 50);
-		Assert.assertEquals(order.getOpenVolume(), 150);
-		Assert.assertNotNull(order.getFills());
+		Assert.assertEquals(order.getExecutedQuantity(), 50);
+		Assert.assertEquals(order.getOpenQuantity(), 150);
+		Assert.assertNotNull(order.getTrades());
 		Assert.assertEquals(order.isFilled(), false);
 		Assert.assertEquals(order.isClosed(), false);
 	}
