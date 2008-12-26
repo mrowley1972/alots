@@ -16,7 +16,7 @@ public class Order {
 	/*
 	 * Holds a history of all fills that took place
 	 */
-	List<OrderFill> fills;
+	List<OrderTrade> trades;
 
 	/*
 	 * Two types of enums to ensure type safety 
@@ -27,29 +27,29 @@ public class Order {
 	/*
 	 * A class to hold an order fill for this order only
 	 */
-	private class OrderFill{
+	private class OrderTrade{
 		long volume;
-		double price;
-		Date fillTime;
+		double tradePrice;
+		Date tradeTime;
 		
-		protected OrderFill(long volume, double price, Date fillTime){
+		protected OrderTrade(long volume, double price, Date tradeTime){
 			this.volume = volume;
-			this.price = price;
-			this.fillTime = fillTime;
+			this.tradePrice = price;
+			this.tradeTime = tradeTime;
 		}
 		
 		protected long getVolume(){
 			return volume;
 		}
-		protected double getPrice(){
-			return price;
+		protected double getTradePrice(){
+			return tradePrice;
 		}
-		protected Date getFillTime(){
-			return fillTime;
+		protected Date getTradeTime(){
+			return tradeTime;
 		}
 		
 		public String toString(){
-			return volume + " @$" + price + " at " + fillTime;
+			return volume + " @$" + tradePrice + " at " + tradeTime;
 		}
 		
 	}
@@ -63,8 +63,8 @@ public class Order {
 	private Date entryTime;
 	private double price;
 	private long totalVolume;
-	private long openVolume;
-	private long executedVolume;
+	private long openQuantity;
+	private long executedQuantity;
 	
 	private static int nextID = 10000;
 	
@@ -81,8 +81,8 @@ public class Order {
 		
 		this.price = price;
 		
-		openVolume = totalVolume;
-		executedVolume = 0;
+		openQuantity = totalVolume;
+		executedQuantity = 0;
 		orderID = Order.nextID++;
 		
 		/*The entry time is measured to the nearest millisecond, which is important when multiple agents 
@@ -90,7 +90,7 @@ public class Order {
 		 * the same
 		 */
 		this.entryTime = new Date();
-		fills = new Vector<OrderFill>();
+		trades = new Vector<OrderTrade>();
 	}
 	
 	public Type type(){ 
@@ -103,25 +103,28 @@ public class Order {
 	
 	
 	public boolean isFilled(){
-		return executedVolume == totalVolume;
+		return executedQuantity == totalVolume;
 	}
 	public boolean isClosed(){
-		return openVolume == 0;
+		return openQuantity == 0;
 	}
 	
 	public void cancel(){
-		openVolume = 0;
+		openQuantity = 0;
 	}
 	
+	//updates order's state
+	//once an order is submitted, it's total volume stays constant, only openQuantity and executedQuantity can change through this method
 	public void execute(long volume, double price){
-		OrderFill fill = new OrderFill(volume, price, new Date());
-		fills.add(fill);
-		openVolume -= volume;
-		executedVolume += volume;
+		OrderTrade trade = new OrderTrade(volume, price, new Date());
+		//everytime an order is executed, a trade takes place, which is recorded
+		trades.add(trade);
+		openQuantity -= volume;
+		executedQuantity += volume;
 	}
 	
-	public Vector<OrderFill> getFills(){
-		return new Vector<OrderFill>(fills);
+	public Vector<OrderTrade> getTrades(){
+		return new Vector<OrderTrade>(trades);
 	}
 	
 	public Instrument getInstrument(){
@@ -130,6 +133,9 @@ public class Order {
 	
 	public double getPrice(){
 		return price;
+	}
+	public void setPrice(double price){
+		this.price = price;
 	}
 	
 	public long getOrderID(){
@@ -148,12 +154,12 @@ public class Order {
 		return totalVolume;
 	}
 	
-	public long getOpenVolume(){
-		return openVolume;
+	public long getOpenQuantity(){
+		return openQuantity;
 	}
 	
-	public long getExecutedVolume(){
-		return executedVolume;
+	public long getExecutedQuantity(){
+		return executedQuantity;
 	}
 	
 	/* TODO: need to decide how average executed price is calculated and whether we should store it or just
@@ -162,36 +168,36 @@ public class Order {
 	
 	public double getAverageExecutedPrice(){
 		double price = 0.0;
-		for(OrderFill fill: fills){
-			price += fill.price;
+		for(OrderTrade fill: trades){
+			price += fill.tradePrice;
 		}
-		return price/fills.size();
+		return price/trades.size();
 	}
 	
 	/* TODO: decide at what point the last executed price and last executed quantity is updated
 	 */
 	
 	public double getLastExecutedPrice(){
-		return fills.get(fills.size()-1).getPrice();
+		return trades.get(trades.size()-1).getTradePrice();
 	}
 	
 	public long getLastExecutedVolume(){
-		return fills.get(fills.size()-1).getVolume();
+		return trades.get(trades.size()-1).getVolume();
 	}
 	
 	public String toString(){
 		return "Instrument: " + instrument + " " + "Type: " + type().toString() + " " + "Side: " + side().toString() + " " + 
 			"Total Volume: " + totalVolume + " " + "Price: $" + price + " " + "Open Volume: " +
-						openVolume + " " + "Executed volume: " + executedVolume;
+						openQuantity + " " + "Executed volume: " + executedQuantity;
 	}
 	
 	
 	public int getNumberOfFills(){
-		return fills.size();
+		return trades.size();
 	}
 	
 	public void printFills(){
-		for(OrderFill fill: fills)
+		for(OrderTrade fill: trades)
 			System.out.println("\n" + fill.toString());
 	}
 }
