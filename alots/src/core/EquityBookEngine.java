@@ -2,6 +2,7 @@ package core;
 
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.AbstractQueue;
 
@@ -30,7 +31,7 @@ public class EquityBookEngine extends AbstractBookEngine {
 	}
 	
 	@Override
-	protected boolean processNewOrder(Order order) {
+	protected void processNewOrder(Order order) {
 		//try to match new order straight away
 		matchOrder(order);
 		
@@ -44,13 +45,25 @@ public class EquityBookEngine extends AbstractBookEngine {
 				filledOrders.add(order);
 			}
 		}
+		//put the order into the book if it has not been closed
 		if(!order.isClosed())
 			insertOrder(order);	
-		//something wrong with this boolean return statement
-		return updatedOrders.size() != 0;
+		//Partially filled orders need to be traversed, and filled orders from previous matching of opposing orders
+		//should be removed and put into fully filled orders
+		cleanUpPartiallyFilledOrders();
 	}
 	
-	@Override
+	private void cleanUpPartiallyFilledOrders(){
+		Iterator<Order> iter = partiallyFilledOrders.iterator();
+		while(iter.hasNext()){
+			Order o = iter.next();
+			if(o.isFilled()){
+				iter.remove();
+				filledOrders.add(o);
+			}
+		}
+	}
+	
 	/*
 	 * returns an Order object if finds one in the supplied book, otherwise returns null
 	 * Need to account for the NullPointerException in the calling method
@@ -88,10 +101,9 @@ public class EquityBookEngine extends AbstractBookEngine {
 	
 	@Override
 	protected void matchOrder(Order order) {
-		//deal with market order price discovery here, so that the actual matching already deals with correct prices
+		//deal with market order price discovery here, so that the actual matching already deals with correct price
 		
 		if(order.side() == core.Order.Side.BUY){
-			
 			if(order.type() == core.Order.Type.MARKET){
 				if(askLimitOrders.size() > 0)
 					order.setPrice(askLimitOrders.get(0).getPrice());
@@ -99,7 +111,6 @@ public class EquityBookEngine extends AbstractBookEngine {
 			matchBuyOrder(order);
 		}
 		else{
-			
 			if(order.type() == core.Order.Type.MARKET){
 				if(bidLimitOrders.size() > 0)
 					order.setPrice(bidLimitOrders.get(0).getPrice());
@@ -108,20 +119,25 @@ public class EquityBookEngine extends AbstractBookEngine {
 		}
 	}
 	
-	private void matchSellOrder(Order order){
+	private synchronized void matchSellOrder(Order order){
 		//the order to be matched is a sell order,
 		//start iterating orders in bid order book if there are any orders outstanding
-		
-		while(bidLimitOrders.size() > 0){
+		//only permit matching if there are orders outstanding in the bid limit book
+		if(bidLimitOrders.size() > 0){
 			for(Order curOrder: bidLimitOrders){
+			
+				//assign price to market order after each match
+				if(order.type() == core.Order.Type.MARKET && order.getOpenQuantity() > 0)
+					order.setPrice(curOrder.getPrice());
+			
 				//If the current price of buy order is greater
 				//than the price of sell order, then it is a best match
 				if(curOrder.getPrice() >= order.getPrice() && order.getOpenQuantity() > 0){
 				
 					long quantity;
 					double price = curOrder.getPrice();
-				
-					//figure out the quantity matched
+
+					//calculate matched quantity
 					if(curOrder.getOpenQuantity() > order.getOpenQuantity())
 						quantity = order.getOpenQuantity();
 					else
@@ -130,27 +146,30 @@ public class EquityBookEngine extends AbstractBookEngine {
 					//update order states and set instrument's last price
 					curOrder.execute(quantity, price);
 					order.execute(quantity, price);
+					//instrument's last price, is the last price of match
 					order.getInstrument().setLastPrice(price);
-				
-					//check whether the bid order is filled, then remove from the bidLimitOrders
-					if(curOrder.isFilled())
-						bidLimitOrders.remove(curOrder);
-					//put the sell order into partially executed orders
-					addToPartiallyFilledOrders(order);
+								
+					//put orders into partially executed orders
+					addToPartiallyFilledOrders(order); 
+					//addToPartiallyFilledOrders(curOrder);
 					//put into pushing queue for client notifications of both orders
 					updatedOrders.add(order); updatedOrders.add(curOrder);
 				
 				}
 			}
 		}
-		
+		cleanUpBook(bidLimitOrders);
 	}
 	
-	private void matchBuyOrder(Order order){
+	private synchronized void matchBuyOrder(Order order){
 		//the order to be matched is a buy order
 		//start iterating orders in ask order book if there any orders outstanding
-		while(askLimitOrders.size()>0){
+		if(askLimitOrders.size()>0){
 			for(Order curOrder: askLimitOrders){
+				//assign price to a market order after each match
+				if(order.type() == core.Order.Type.MARKET && order.getOpenQuantity() > 0)
+					order.setPrice(curOrder.getPrice());
+				
 				//If the current price of sell order price is less
 				//than the price of buy order, then it is a best match
 				if(curOrder.getPrice() <= order.getPrice() && order.getOpenQuantity() > 0){
@@ -167,9 +186,6 @@ public class EquityBookEngine extends AbstractBookEngine {
 					order.execute(quantity, price);
 					order.getInstrument().setLastPrice(price);
 					
-					//check whether the ask order is filled, then remove from the askLimitOrders
-					if(curOrder.isFilled())
-						askLimitOrders.remove(curOrder);
 					//put the buy order into partially executed orders
 					addToPartiallyFilledOrders(order);
 					//put into pushing queue for client notifications of both orders
@@ -177,8 +193,17 @@ public class EquityBookEngine extends AbstractBookEngine {
 				}
 			}
 		}
+		cleanUpBook(askLimitOrders);
 	}
 	
+	//deletes filled orders from a book
+	private void cleanUpBook(List<Order> book){
+		Iterator<Order> iter = book.iterator();
+		while(iter.hasNext()){
+			if(iter.next().isFilled())
+				iter.remove();
+		}
+	}
 	//clean up partiallyFilledOrders by removing an object with the same reference
 	//and then adding the same element, but with updated internal state
 	private void addToPartiallyFilledOrders(Order order){
