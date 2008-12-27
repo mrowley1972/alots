@@ -6,9 +6,9 @@ public abstract class AbstractBookEngine {
 
 	protected abstract Order findOrder(long orderID, List<Order> book);
 	
-	protected abstract boolean processNewOrder(Order order);
+	protected abstract void processNewOrder(Order order);
 	
-	protected abstract Order processCancelledOrder(Order order);
+	protected abstract Order processCancelOrder(Order order);
 	
 	protected abstract void insertOrder(Order order);
 	

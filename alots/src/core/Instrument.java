@@ -16,16 +16,19 @@ public class Instrument {
 	 * Books implemented as a Vector, because it is thread-safe and increment size can be set
 	 */
 	
-	public List<Order> bidLimitOrders;
-	public List<Order> askLimitOrders;
+	protected List<Order> bidLimitOrders;
+	protected List<Order> askLimitOrders;
 	
 	//A book of fully filled orders, i.e. order.isFilled() is TRUE
-	public List<Order> filledOrders;
+	//Need to consider changing to Hashtable to improve deletion and insertions
+	//Consider using ConcurrentHashMap<K,V>
+	protected List<Order> filledOrders;
 	
 	//A book of partially filled orders, when fully filled moved into filledOrders
-	public List<Order> partiallyFilledOrders;
+	//Need to consider changing to HashTable to improve deletion and insertions
+	protected List<Order> partiallyFilledOrders;
 	
-	public AbstractBookEngine bookEngine;
+	protected AbstractBookEngine bookEngine;
 	
 	private String tickerSymbol;
 	private double lastPrice;	
@@ -40,26 +43,38 @@ public class Instrument {
 	}
 	
 	/*
-	 * Methods for clients to get latest view of the book
+	 * Methods to get latest view of books
 	 */
-	public List<Order> getBidLimitOrders(){
+	protected List<Order> getBidLimitOrders(){
 		return new Vector<Order>(bidLimitOrders);
 	}
-	public List<Order> getAskLimitOrders(){
+	protected List<Order> getAskLimitOrders(){
 		return new Vector<Order>(askLimitOrders);
+	}
+	protected List<Order> getFilledOrders(){
+		return new Vector<Order>(filledOrders);
+	}
+	protected List<Order> getPartiallyFilledOrders(){
+		return new Vector<Order>(partiallyFilledOrders);
 	}
 	
 	
 	
 	//These are just delegating methods, the actual implementation is in BooksEngine
-	public boolean processNewOrder(Order order){
-		//dummy return
-		return true;
+	public void processNewOrder(Order order){
+		bookEngine.processNewOrder(order);
 	}
 	
-	public Order processCancelledOrder(Order order){
-		//dummy return
-		return order;
+	/*
+	 * Sequence of calls:
+	 * 1. Client requests StockExchange to cancel order with specific orderID
+	 * 2. StockExchange checks whether an order belongs to that client, according to his clientID
+	 * 3. StockExchange calls Instrument to cancel a specific Order
+	 * 4. If null is returned, cancellation is not possible
+	 * 5. If order object is returned, cancellation took place
+	 */
+	public Order processCancelOrder(Order order){
+		return bookEngine.processCancelOrder(order);
 	}
 	
 	public void insertOrder(Order order){
