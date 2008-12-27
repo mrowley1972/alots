@@ -93,29 +93,29 @@ public class Order {
 		trades = new Vector<OrderTrade>();
 	}
 	
-	public Type type(){ 
+	protected Type type(){ 
 		return type;
 	}
 	
-	public Side side(){ 
+	protected Side side(){ 
 		return side;
 	}
 	
 	
-	public boolean isFilled(){
+	protected boolean isFilled(){
 		return executedQuantity == totalVolume;
 	}
-	public boolean isClosed(){
+	protected boolean isClosed(){
 		return openQuantity == 0;
 	}
 	
-	public void cancel(){
+	protected void cancel(){
 		openQuantity = 0;
 	}
 	
 	//updates order's state
 	//once an order is submitted, it's total volume stays constant, only openQuantity and executedQuantity can change through this method
-	public void execute(long volume, double price){
+	protected void execute(long volume, double price){
 		OrderTrade trade = new OrderTrade(volume, price, new Date());
 		//everytime an order is executed, a trade takes place, which is recorded
 		trades.add(trade);
@@ -134,7 +134,7 @@ public class Order {
 	public double getPrice(){
 		return price;
 	}
-	public void setPrice(double price){
+	protected void setPrice(double price){
 		this.price = price;
 	}
 	
@@ -186,7 +186,7 @@ public class Order {
 	}
 	
 	public String toString(){
-		return "Instrument: " + instrument + " " + "Type: " + type().toString() + " " + "Side: " + side().toString() + " " + 
+		return "Instrument: " + instrument + " "+ "Type: "+ type().toString() + " " + "Side: " + side().toString() + " " + 
 			"Total Volume: " + totalVolume + " " + "Price: $" + price + " " + "Open Volume: " +
 						openQuantity + " " + "Executed volume: " + executedQuantity;
 	}
