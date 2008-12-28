@@ -64,14 +64,8 @@ public class Instrument {
 	public void processNewOrder(Order order){
 		bookEngine.processNewOrder(order);
 	}
-	
 	/*
-	 * Sequence of calls:
-	 * 1. Client requests StockExchange to cancel order with specific orderID
-	 * 2. StockExchange checks whether an order belongs to that client, according to his clientID
-	 * 3. StockExchange calls Instrument to cancel a specific Order
-	 * 4. If null is returned, cancellation is not possible
-	 * 5. If order object is returned, cancellation took place
+	 * returns null is cancellation did not take place
 	 */
 	public Order processCancelOrder(Order order){
 		return bookEngine.processCancelOrder(order);

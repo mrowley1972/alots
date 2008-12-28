@@ -43,6 +43,38 @@ public class EquityBookEngine extends AbstractBookEngine {
 	}
 	
 	@Override
+	protected Order processCancelOrder(Order order){
+		Order o;
+		
+		if(order.side() == core.Order.Side.BUY){
+			Iterator<Order> iter = bidLimitOrders.iterator();
+			while(iter.hasNext()){
+				o = iter.next();
+				if(o.equals(order)){
+					iter.remove();
+					o.cancel();
+					return o;
+				}
+			}
+			return null;
+		}
+		if(order.side() == core.Order.Side.SELL){
+			Iterator<Order> iter = askLimitOrders.iterator();
+			while(iter.hasNext()){
+				o = iter.next();
+				if(o.equals(order)){
+					iter.remove();
+					o.cancel();
+					return o;
+				}
+			}
+			return null;
+		}
+		
+		return null;
+	}
+	
+	@Override
 	protected void processNewOrder(Order order) {
 		//try to match new order straight away
 		matchOrder(order);
@@ -213,38 +245,4 @@ public class EquityBookEngine extends AbstractBookEngine {
 			}
 		}
 	}
-
-	@Override
-	protected Order processCancelOrder(Order order){
-		Order o;
-		
-		if(order.side() == core.Order.Side.BUY){
-			Iterator<Order> iter = bidLimitOrders.iterator();
-			while(iter.hasNext()){
-				o = iter.next();
-				if(o.equals(order)){
-					iter.remove();
-					o.cancel();
-					return o;
-				}
-			}
-			return null;
-		}
-		if(order.side() == core.Order.Side.SELL){
-			Iterator<Order> iter = askLimitOrders.iterator();
-			while(iter.hasNext()){
-				o = iter.next();
-				if(o.equals(order)){
-					iter.remove();
-					o.cancel();
-					return o;
-				}
-			}
-			return null;
-		}
-		
-		return null;
-	}
-
-
 }
