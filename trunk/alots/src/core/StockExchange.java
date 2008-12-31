@@ -11,6 +11,7 @@ package core;
 
 import java.util.AbstractMap;
 import java.util.AbstractQueue;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -28,10 +29,14 @@ public class StockExchange {
 	private AbstractQueue<Order> updatedOrders;
 	//state of the stock exchange
 	private boolean started = false;
+	
 	private OrderProcessor orderProcessor;
 	private Thread op;
 	private static int nextClientID = 0;
 	
+	/**
+	 * Creates a <code>StockExchange</code> with default implementation
+	 */
 	public StockExchange(){
 		clientOrdersDB = new ConcurrentHashMap<Integer, ClientOrders>();
 		instruments = new ConcurrentHashMap<String, Instrument>();
@@ -41,7 +46,7 @@ public class StockExchange {
 		op = new Thread(orderProcessor);
 	}
 	
-	public int generateClientID(){
+	protected int generateClientID(){
 		return ++StockExchange.nextClientID;
 	}
 	
@@ -76,6 +81,8 @@ public class StockExchange {
 	 * @exception IllegalArgumentException if instrument's ticker symbol is incorrect
 	 */
 	public List<Order> getInstrumentBidBook(String tickerSymbol){
+		if(!started)
+			throw new MarketsClosedException("The market is currently closed");
 		Instrument instrument = findInstrument(tickerSymbol);
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol " + tickerSymbol);
@@ -89,35 +96,31 @@ public class StockExchange {
 	 * @exception IllegalArgumentException if instrument's ticker symbol is incorrect
 	 */
 	public List<Order> getInstrumentAskBook(String tickerSymbol){
+		if(!started)
+			throw new MarketsClosedException("The market is currently closed");
 		Instrument instrument = findInstrument(tickerSymbol);
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol "+ tickerSymbol);
 		return instrument.getAskLimitOrders();
 	}
 
-	/*
-	 * 1. Validate order's parameters, if something is wrong, an order is not created
-	 * 2. Create a new order
-	 * 3. Put newly created order into client's orders list
-	 * 4. Update client orders db
-	 * 5. Process this order
-	 */
 	/**
 	 * Submit an order to the exchange to be traded
-	 * @param tickerSymbol  a valid traded instrument on the exchange
+	 * @param tickerSymbol  a valid traded instrument's ticker symbol
 	 * @param side 			either BUY or SELL
 	 * @param type 			either LIMIT or MARKET
-	 * @param price 		price greater than zero
-	 * @param quantity 		quantity greater than zero
+	 * @param price 		positive order price 
+	 * @param quantity 		non-negative order quantity
+	 * @return orderID		an id of this submitted order
 	 * @exception IllegalArgumentException if parameters do not comply
 	 */
-	public Order createOrder(String tickerSymbol, int clientID, String side, String type, double price, long quantity){
+	public long createOrder(String tickerSymbol, int clientID, String side, String type, double price, long quantity){
 	
 		// Validate all of the order's parameters
 		Instrument instrument = findInstrument(tickerSymbol);
 		core.Order.Side orderSide;
 		core.Order.Type orderType;
-		
+		//can only create orders for existing instruments
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol: " + tickerSymbol);
 		
@@ -127,7 +130,7 @@ public class StockExchange {
 			if(side.equalsIgnoreCase("SELL"))
 				orderSide = core.Order.Side.SELL;
 			else
-				throw new IllegalArgumentException("Invalid side" + side);
+				throw new IllegalArgumentException("Invalid side: " + side);
 		}
 		
 		if(type.equalsIgnoreCase("LIMIT"))
@@ -136,25 +139,25 @@ public class StockExchange {
 			if(type.equalsIgnoreCase("MARKET"))
 				orderType = core.Order.Type.MARKET;
 			else
-				throw new IllegalArgumentException("Invalid type" + type);
+				throw new IllegalArgumentException("Invalid type: " + type);
 		}
 		if(price < 0)
-			throw new IllegalArgumentException("Invalid price" + price);
+			throw new IllegalArgumentException("Negative value price: " + price);
 		
 		if(quantity <=0)
-			throw new IllegalArgumentException("Invalid quantity" + quantity);
+			throw new IllegalArgumentException("Invalid quantity: " + quantity);
 		
 		//if all parameters are valid, create a new order
 		Order order = new Order(clientID, instrument, orderSide, orderType, quantity, price);
+		
 		//add this order to a client's orders list
 		ClientOrders clientOrders = findClientOrders(clientID);
 		clientOrders.addOrder(order);
 		clientOrdersDB.put(clientID, clientOrders);
 		
+		//finally process this order and return the object
 		processOrder(order);
-		return order;
-		
-		
+		return order.getOrderID();
 	}
 	/*
 	 * An order can only be cancelled if clientID matches the order's clientID
@@ -163,19 +166,110 @@ public class StockExchange {
 	 */
 	
 	/**
-	 * Method to cancel an existing order, which can only belong to this client.
+	 * Method to cancel an existing order, belonging to this client.
 	 * 
-	 * @param 	clientID  needs to be client's id, assigned by the StockExchange during connection
-	 * @param 	orderID   can be one of orderIDs that this client has
-	 * @return 	an order object that was requested to be cancelled, null if the order does not exist or does not belong to this client
+	 * @param 	clientID  valid client's own id, assigned by the StockExchange during connection
+	 * @param 	orderID   one of orderIDs that this client has for own orders
+	 * @return 	an order object that was requested to be cancelled, <code>null</code> if the order does not exist, does not belong to this client or has already 
+	 * been filled
+	 * @exception MarketsClosedException if the market is not currently opened
 	 */
 	public Order cancelOrder(int clientID, long orderID){
+		if(!started)
+			throw new MarketsClosedException("The market is currently closed");
+		
 		Order order = clientOrdersDB.get(clientID).findOrder(orderID);
-		Order result = order.getInstrument().processCancelOrder(order);
-		return result;
+		if(order != null){
+			return order.getInstrument().processCancelOrder(order);
+		}
+		return null;
 		
 	}
 	
+	/**
+	 * Create an instrument to be traded on the exchange. If the instrument is already being traded, new instrument is not created.
+	 * @param tickerSymbol a correct ticker symbol for this instrument
+	 * @return void
+	 */
+	public void registerInstrument(String tickerSymbol){
+		Instrument instrument = findInstrument(tickerSymbol);
+		if(instrument == null){
+			instrument = new Instrument(tickerSymbol, updatedOrders);
+			instruments.put(tickerSymbol.toUpperCase(), instrument);
+		}
+	}
+	
+	/**
+	 * Get a list of currently traded instruments.
+	 * @return a list of currently traded instruments, <code>null</code> if there are no instruments being traded.
+	 */
+	public List<String> getTradedInstrumentsList(){
+		Iterator<String> iter = instruments.keySet().iterator();
+		List<String> list = new ArrayList<String>();
+		while(iter.hasNext()){
+			list.add(iter.next());
+		}
+		return list;
+	}
+	
+	/*
+	 * The following, are all delegating methods. 
+	 */
+	
+	/**
+	 * Get the last price of an instrument
+	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @return this instrument's last price
+	 * @exception IllegalArgumentException if wrong ticker symbol has been passed
+	 */
+	public double getInstrumentLastPrice(String tickerSymbol){
+		Instrument instrument = findInstrument(tickerSymbol);
+		if(instrument == null)
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+		return instrument.getLastPrice();
+	}
+	
+	/**
+	 * Get the total volume of instrument's bid order book
+	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @return this instrument's bid order book volume
+	 * @exception IllegalArgumentException if wrong ticker symbol has been passed
+	 */
+	public long getInstrumentBidVolume(String tickerSymbol){
+		Instrument instrument = findInstrument(tickerSymbol);
+		if(instrument == null)
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+		return instrument.getBidVolume();
+	}
+	
+	/**
+	 * Get the total volume of instrument's ask order book
+	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @return this instrument's ask order book volume
+	 * @exception IllegalArgumentException if wrong ticker symbol has been passed
+	 */
+	public long getInstrumentAskVolume(String tickerSymbol){
+		Instrument instrument = findInstrument(tickerSymbol);
+		if(instrument == null)
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+		return instrument.getAskVolume();
+	}
+	
+	//TODO: calling this method causes the state of books to change, find out why
+	public long getInstrumentBuyVolume(String tickerSymbol){
+		Instrument instrument = findInstrument(tickerSymbol);
+		if(instrument == null)
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+		return instrument.getBuyVolume();
+	}
+	
+	// Helper method to ease testing
+	protected Instrument getInstrument(String tickerSymbol){
+		Instrument instrument = findInstrument(tickerSymbol);
+		if(instrument == null)
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+		return instrument;
+	}
 	private void processOrder(Order order){
 		//add the order to the processing queue
 		try{
@@ -187,39 +281,14 @@ public class StockExchange {
 		}
 	}
 	
-	
-	/*
-	 * An instrument is created if it does not already exist
-	 * Upon creation, instrument gets access to a queue of updated orders that are pushed to clients
-	 * That queue is centralized for the whole exchange
-	 */
-	/**
-	 * Create an instrument to be traded on the exchange. Does not create new instrument, if it is already traded
-	 */
-	public void registerInstrument(String tickerSymbol){
-		Instrument instrument = findInstrument(tickerSymbol);
-		if(instrument == null){
-			instrument = new Instrument(tickerSymbol, updatedOrders);
-		}
-	}
-	
-	/**
-	 * Print currently traded instruments on the exchange
-	 */
-	public void printAvailableInstruments(){
-		Iterator<String> iter = instruments.keySet().iterator();
-		System.out.println("**********AVAILABLE INSTRUMENTS***********");
-		while(iter.hasNext()){
-			System.out.println(instruments.get(iter.next()));
-		}
-	}
-	
 	private Instrument findInstrument(String tickerSymbol){
-		if(instruments.containsKey(tickerSymbol))
-			return instruments.get(tickerSymbol);
+		String symbol = tickerSymbol.toUpperCase();
+		if(instruments.containsKey(symbol))
+			return instruments.get(symbol);
 		return null;
 	}
 	private ClientOrders findClientOrders(int clientID){
+		
 		if(clientOrdersDB.containsKey(clientID))
 			return clientOrdersDB.get(clientID);
 		
