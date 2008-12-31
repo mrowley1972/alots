@@ -35,7 +35,7 @@ public class OrderTest {
 	
 	@Test
 	public void verifyTotalVolumeAndLimitPrice(){
-		Assert.assertEquals(order.getTotalVolume(), 200);
+		Assert.assertEquals(order.getQuantity(), 200);
 		Assert.assertEquals(order.getPrice(), 15.0);
 	}
 	

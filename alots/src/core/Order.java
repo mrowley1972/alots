@@ -62,26 +62,26 @@ public class Order {
 	private Instrument instrument;
 	private Date entryTime;
 	private double price;
-	private long totalVolume;
+	private long quantity;
 	private long openQuantity;
 	private long executedQuantity;
 	
 	private static int nextID = 10000;
 	
-	public Order(int clientID, Instrument instrument, Side side, Type type, long totalVolume, double price){
+	public Order(int clientID, Instrument instrument, Side side, Type type, long quantity, double price){
 		this.clientID = clientID;
 		this.instrument = instrument;
 		this.side = side;
 		this.type = type;
 		
-		if(totalVolume< 0)
-			this.totalVolume = 0;
+		if(quantity< 0)
+			this.quantity = 0;
 		else 
-			this.totalVolume = totalVolume;
+			this.quantity = quantity;
 		
 		this.price = price;
 		
-		openQuantity = totalVolume;
+		openQuantity = quantity;
 		executedQuantity = 0;
 		orderID = Order.nextID++;
 		
@@ -103,7 +103,7 @@ public class Order {
 	
 	
 	protected boolean isFilled(){
-		return executedQuantity == totalVolume;
+		return executedQuantity == quantity;
 	}
 	protected boolean isClosed(){
 		return openQuantity == 0;
@@ -150,8 +150,8 @@ public class Order {
 		return entryTime;
 	}
 	
-	public long getTotalVolume(){
-		return totalVolume;
+	public long getQuantity(){
+		return quantity;
 	}
 	
 	public long getOpenQuantity(){
@@ -187,7 +187,7 @@ public class Order {
 	
 	public String toString(){
 		return "Instrument: " + instrument + " "+ "Type: "+ type().toString() + " " + "Side: " + side().toString() + " " + 
-			"Total Volume: " + totalVolume + " " + "Price: $" + price + " " + "Open Volume: " +
+			"Total Volume: " + quantity + " " + "Price: $" + price + " " + "Open Volume: " +
 						openQuantity + " " + "Executed volume: " + executedQuantity;
 	}
 	

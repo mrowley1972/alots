@@ -32,7 +32,6 @@ public class EquityBookEngine extends AbstractBookEngine {
 	
 	/*
 	 * returns an Order object if finds one in the supplied book, otherwise returns null
-	 * Need to account for the NullPointerException in the calling method
 	 */
 	protected Order findOrder(long orderID, List<Order> book) {
 		for(Order order: book){
@@ -43,9 +42,12 @@ public class EquityBookEngine extends AbstractBookEngine {
 	}
 	
 	@Override
+	/*
+	 * An order can only be cancelled, if it in one of the books, i.e. bidLimitOrders or askLimitOrders
+	 * If an order is not found to be in those books, this method returns null
+	 */
 	protected Order processCancelOrder(Order order){
 		Order o;
-		
 		if(order.side() == core.Order.Side.BUY){
 			Iterator<Order> iter = bidLimitOrders.iterator();
 			while(iter.hasNext()){
@@ -53,6 +55,7 @@ public class EquityBookEngine extends AbstractBookEngine {
 				if(o.equals(order)){
 					iter.remove();
 					o.cancel();
+					updatedOrders.add(o);
 					return o;
 				}
 			}
@@ -65,6 +68,7 @@ public class EquityBookEngine extends AbstractBookEngine {
 				if(o.equals(order)){
 					iter.remove();
 					o.cancel();
+					updatedOrders.add(o);
 					return o;
 				}
 			}
