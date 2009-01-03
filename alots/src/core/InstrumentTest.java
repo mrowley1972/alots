@@ -25,14 +25,6 @@ public class InstrumentTest {
 	}
 	
 	@Test
-	public void verifyConstructorInitialisations(){
-		Assert.assertNotNull(instrument.askLimitOrders);
-		Assert.assertNotNull(instrument.bidLimitOrders);
-		Assert.assertNotNull(instrument.filledOrders);
-		Assert.assertNotNull(instrument.partiallyFilledOrders);
-		Assert.assertNotNull(instrument.bookEngine);
-	}
-	@Test
 	public void insertBuyOrders(){
 		bOrder = new Order(1, instrument, core.Order.Side.BUY, core.Order.Type.LIMIT, 500, 24.0620);
 		bOrder2 = new Order(2, instrument, core.Order.Side.BUY, core.Order.Type.LIMIT, 5000, 24.0600);
@@ -92,8 +84,8 @@ public class InstrumentTest {
 	public void verifyStateOfBooksAfterMarketOrder(){
 	
 		Assert.assertEquals(instrument.getAskLimitOrders().size(), 1);
-		Assert.assertEquals(instrument.getFilledOrders().size(), 1);
-		Assert.assertEquals(instrument.getPartiallyFilledOrders().size(), 0);
+		Assert.assertEquals(instrument.getFilledOrders().size(), 5);
+		Assert.assertEquals(instrument.getPartiallyFilledOrders().size(), 1);
 		Assert.assertEquals(instrument.getBidLimitOrders().size(), 5);
 	}
 	
@@ -108,7 +100,7 @@ public class InstrumentTest {
 	@Test(dependsOnMethods = {"submitBuyLimitOrder"})
 	public void verifyStateOfBooksAfterLimitOrder(){
 		Assert.assertEquals(instrument.getPartiallyFilledOrders().size(), 1);
-		Assert.assertEquals(instrument.getFilledOrders().size(), 1);
+		Assert.assertEquals(instrument.getFilledOrders().size(), 6);
 		Assert.assertEquals(instrument.getBidLimitOrders().size(), 7);
 		Assert.assertEquals(instrument.getAskLimitOrders().size(), 0);
 	}
@@ -127,8 +119,8 @@ public class InstrumentTest {
 	public void verifyStateOfBooksAfterSellLimitOrders(){
 		Assert.assertEquals(instrument.getBidLimitOrders().size(), 6);
 		Assert.assertEquals(instrument.getAskLimitOrders().size(), 1);
-		Assert.assertEquals(instrument.getFilledOrders().size(), 4);
-		Assert.assertEquals(instrument.getPartiallyFilledOrders().size(), 0);
+		Assert.assertEquals(instrument.getFilledOrders().size(), 9);
+		Assert.assertEquals(instrument.getPartiallyFilledOrders().size(), 1);
 		printBooks();
 	}
 	
@@ -160,13 +152,13 @@ public class InstrumentTest {
 		System.out.println("Partially executed orders: ");
 		for(Order order: instrument.getPartiallyFilledOrders()){
 			System.out.println(order.toString());
-			order.printFills();
+			order.printTrades();
 		}
 		System.out.println();
 		System.out.println("Fully executed orders: ");
 		for(Order order: instrument.getFilledOrders()){
 			System.out.println(order.toString());
-			order.printFills();
+			order.printTrades();
 		}
 		System.out.println("Instrument's last traded price: " + instrument.getLastPrice());
 		System.out.println();

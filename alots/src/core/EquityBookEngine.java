@@ -30,17 +30,6 @@ public class EquityBookEngine extends AbstractBookEngine {
 		this.updatedOrders = updatedOrders;
 	}
 	
-	/*
-	 * returns an Order object if finds one in the supplied book, otherwise returns null
-	 */
-	protected Order findOrder(long orderID, List<Order> book) {
-		for(Order order: book){
-			if(order.getOrderID() == orderID)
-				return order;
-		}
-		return null;
-	}
-	
 	@Override
 	/*
 	 * An order can only be cancelled, if it in one of the books, i.e. bidLimitOrders or askLimitOrders
@@ -86,11 +75,11 @@ public class EquityBookEngine extends AbstractBookEngine {
 		if(order.isFilled()){
 			if(order.side() == core.Order.Side.BUY){
 				bidLimitOrders.remove(order);
-				filledOrders.add(order);
+				addToFilledOrders(order);
 			}
-			else{
+			if(order.side() == core.Order.Side.SELL){
 				askLimitOrders.remove(order);
-				filledOrders.add(order);
+				addToFilledOrders(order);
 			}
 		}
 		//put the order into the book if it has not been closed
@@ -131,7 +120,7 @@ public class EquityBookEngine extends AbstractBookEngine {
 		if(order.side() == core.Order.Side.BUY){	
 			matchBuyOrder(order);
 		}
-		else{
+		if(order.side() == core.Order.Side.SELL){
 			matchSellOrder(order);
 		}
 	}
@@ -167,13 +156,14 @@ public class EquityBookEngine extends AbstractBookEngine {
 								
 					//put orders into partially executed orders
 					addToPartiallyFilledOrders(order); 
-					//addToPartiallyFilledOrders(curOrder);
+					addToPartiallyFilledOrders(curOrder);
 					//put into pushing queue for client notifications of both orders
 					updatedOrders.add(order); updatedOrders.add(curOrder);
 				
 				}
 			}
 		}
+		//cannot remove while iterating through the book, hence need to do an extra pass and eliminate filled orders
 		cleanUpBook(bidLimitOrders);
 	}
 	
@@ -204,11 +194,13 @@ public class EquityBookEngine extends AbstractBookEngine {
 					
 					//put the buy order into partially executed orders
 					addToPartiallyFilledOrders(order);
+					addToPartiallyFilledOrders(curOrder);
 					//put into pushing queue for client notifications of both orders
 					updatedOrders.add(order); updatedOrders.add(curOrder);
 				}
 			}
 		}
+		//cannot remove while iterating through the book, hence need to do an extra pass and eliminate filled orders
 		cleanUpBook(askLimitOrders);
 	}
 	
@@ -227,17 +219,31 @@ public class EquityBookEngine extends AbstractBookEngine {
 		if(partiallyFilledOrders.contains(order))
 		{
 			//if the order is filled, it is put into filled orders in processNewOrders()
-			if(order.isFilled())
-				partiallyFilledOrders.remove(order);
+			if(order.isFilled()){
+				partiallyFilledOrders.remove(order);	
+				addToFilledOrders(order);
+			}
 			else{
 				partiallyFilledOrders.remove(order);
 				partiallyFilledOrders.add(order);
 			}
 		}
+		
 		else{ 
 			if(!order.isFilled())
 				partiallyFilledOrders.add(order);
+			else
+				addToFilledOrders(order);
 		}
+	}
+	
+	private void addToFilledOrders(Order order){
+		if(filledOrders.contains(order)){
+			filledOrders.remove(order);
+			filledOrders.add(order);
+		}
+		else
+			filledOrders.add(order);
 	}
 	private void cleanUpPartiallyFilledOrders(){
 		Iterator<Order> iter = partiallyFilledOrders.iterator();
