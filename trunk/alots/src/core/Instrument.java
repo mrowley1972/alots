@@ -1,34 +1,36 @@
 /**
+ * An class fully encapsulating properties of a traded Instrument on an exchange. 
+ * The class holds four books - bid order book, ask order book, and two books representing filled and partially 
+ * filled orders. These books are not manipulated by this class directly, instead it requires a class implementing 
+ * <code>BookEngine</code> interface, that makes all of the necessary modifications to these containers. 
+ * Clients must not be able to access this object directly, instead delegating calls are made from <code>StockExchange</code> 
+ * class for any particular instrument. 
+ * Each instrument does its own matching and order manipulations, without interfering with any other traded instruments.
+ * 
  * @author Asset Tarabayev
- */
-
-/*
- * TODO: CRUCIAL - figure out how to present a client with the update-to-date book
- * Possible solution is for a client to have a Book object, that is notified through the Observer pattern
  */
 
 package core;
 
-import java.util.*;
+import java.util.AbstractQueue;
+import java.util.List;
+import java.util.Vector;
+
 
 public class Instrument {
 	/*
-	 * Books implemented as a Vector, because it is thread-safe and increment size can be set
+	 * Books implemented as a Vector, thread-safe and increment size can be set
 	 */
 	protected List<Order> bidLimitOrders;
 	protected List<Order> askLimitOrders;
 	
 	//A book of fully filled orders, i.e. order.isFilled() is TRUE
-	//Need to consider changing to Hashtable to improve deletion and insertions
-	//Consider using ConcurrentHashMap<K,V>
 	protected List<Order> filledOrders;
 	
 	//A book of partially filled orders, when fully filled moved into filledOrders
-	//Need to consider changing to HashTable to improve deletion and insertions
 	protected List<Order> partiallyFilledOrders;
 	
-	protected AbstractBookEngine bookEngine;
-	
+	private BookEngine bookEngine;
 	private String tickerSymbol;
 	private double lastPrice;	
 	
@@ -47,18 +49,31 @@ public class Instrument {
 		bookEngine = new EquityBookEngine(bidLimitOrders, askLimitOrders, filledOrders, partiallyFilledOrders, updatedOrders);
 	}
 	
-	/*
-	 * Methods to get latest view of books
+	/**
+	 * Get the bid order book
+	 * @return a Vector of bid limit orders
 	 */
 	protected List<Order> getBidLimitOrders(){
 		return new Vector<Order>(bidLimitOrders);
 	}
+	/**
+	 * Get the ask order book
+	 * @return a Vector of ask limit orders
+	 */
 	protected List<Order> getAskLimitOrders(){
 		return new Vector<Order>(askLimitOrders);
 	}
+	/**
+	 * Get the book of fully filled orders
+	 * @return a Vector of fully filled orders
+	 */
 	protected List<Order> getFilledOrders(){
 		return new Vector<Order>(filledOrders);
 	}
+	/**
+	 * Get the book of partially filled orders
+	 * @return a Vector of partially filled orders
+	 */
 	protected List<Order> getPartiallyFilledOrders(){
 		return new Vector<Order>(partiallyFilledOrders);
 	}
@@ -81,16 +96,17 @@ public class Instrument {
 		return bookEngine.processCancelOrder(order);
 	}
 	
+	/**
+	 * Insert a valid order into either of order books.
+	 * @param order an <code>Order</code> object previously checked for its validity.
+	 */
 	protected void insertOrder(Order order){
 		bookEngine.insertOrder(order);
 	}
 	
-	/*
-	 * TODO: It needs to be decided about the access modifiers of these getter methods
-	 * They should preferably be protected, with StockExchange providing delegating methods...
-	 * This is important for security purposes, so that no client ever gets access to an Instrument object
-	 * 
-	 * The Client should be requesting according to API: getInstrumentLastTradedPrice(String tickerSymbol)
+	/**
+	 * Get this Instrument's ticker symbol
+	 * @return this instrument's ticker symbol
 	 */
 	protected String getTickerSymbol(){
 		return tickerSymbol;
@@ -99,16 +115,29 @@ public class Instrument {
 	/*
 	 * lastPrice is set by the matching engine everytime an order gets matched
 	 */
-	
+	/**
+	 * Get this Instrument's last traded price
+	 * @return last price of this instrument
+	 */
 	protected double getLastPrice(){
 		return lastPrice;
 	}
 	
+	/**
+	 * Set this Instrument's last traded price
+	 * @param price a non-negative price 
+	 * @exception IllegalArgumentException if the passed argument is negative
+	 */
 	protected void setLastPrice(double price){
+		if(price <0) 
+			throw new IllegalArgumentException("Invalid price: " + price);
 		lastPrice = price;
 	}
-	/*
-	 * Outstanding bid volume
+	
+	/**
+	 * Get this Instrument's bid volume. Bid volume is calculated by summing open quantities from orders 
+	 * that are queued in the bid order book.
+	 * @return bid volume of <code>this</code> instrument
 	 */
 	protected long getBidVolume(){
 		long volume = 0;
@@ -118,8 +147,10 @@ public class Instrument {
 		return volume;
 	}
 
-	/*
-	 * Outstanding ask volume
+	/**
+	 * Get this Instrument's ask volume. Ask volume is calculated by summing open quantities from orders 
+	 * tjat are queued in the ask order book.
+	 * @return ask volume of <code>this</code> instrument
 	 */
 	protected long getAskVolume(){
 		long volume = 0;
@@ -129,12 +160,12 @@ public class Instrument {
 		return volume;
 	}
 	
-	
-	/*
-	 * buy volume = total bought quantities from filled orders + executed bought quantities from partially filled orders
+	/**
+	 * Get this Instrument's buy volume. 
+	 * Buy volume = filled orders' buy side total quantities + partially filled orders' buy side executed quantities
+	 * 
+	 * @return <code>this</code> Instrument's buy volume
 	 */
-	
-	//TODO: This method causes the state of books to change, need to find out why
 	protected long getBuyVolume(){
 		long volume = 0;
 		
@@ -149,8 +180,10 @@ public class Instrument {
 		return volume;
 	}
 	
-	/*
-	 * sell volume = total sold quantities from filled orders + executed sold quantities from partially filled orders	 
+	/**
+	 * Get this Instrument's sell volume. 
+	 * Sell volume = filled orders' sell side total quantities + partially filled orders' sell side executed quantities
+	 * @return <code>this</code> Instrument's sell volume
 	 */
 	protected long getSellVolume(){
 		long volume = 0;
@@ -166,7 +199,10 @@ public class Instrument {
 		return volume;	
 	}
 	
-	
+	/**
+	 * Get this Instrument's average buy price
+	 * @return <code>this</code> Instrument's average buy price
+	 */
 	protected double getAverageBuyPrice(){
 		long orders = 0;
 		double averageOrderPrice = 0.0;
@@ -188,6 +224,10 @@ public class Instrument {
 		return averageOrderPrice/(double)orders;
 	}
 	
+	/**
+	 * Get this Instrument's average sell price
+	 * @return <code>this</code> Instrument's average sell price
+	 */
 	protected double getAverageSellPrice(){
 		long orders = 0;
 		double averageOrderPrice = 0.0;
@@ -208,8 +248,9 @@ public class Instrument {
 		return averageOrderPrice/(double)orders;
 	}
 	
-	/*
-	 * VWAP of all outstanding orders, both partially filled and not filled
+	/**
+	 * Get this Instrument's bid volume weighted average price (VWAP)
+	 * @return <code>this</code> Instrument's bid volume weighted average price
 	 */
 	protected double getBidVWAP(){
 		long volume = 0;
@@ -221,6 +262,10 @@ public class Instrument {
 		return price/(double)volume;
 	}
 	
+	/**
+	 * Get this Instrument's ask volume weighted average price (VWAP)
+	 * @return <code>this</code> Instrument's ask volume weighted average price
+	 */
 	protected double getAskVWAP(){
 		long volume = 0;
 		double price = 0.0;
@@ -231,6 +276,9 @@ public class Instrument {
 		return price/(double)volume;
 	}
 	
+	/**
+	 * @return ticker symbol of <code>this</code> Instrument
+	 */
 	public String toString(){
 		return tickerSymbol;
 	}

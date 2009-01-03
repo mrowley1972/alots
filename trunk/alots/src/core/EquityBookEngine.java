@@ -6,7 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.AbstractQueue;
 
-public class EquityBookEngine extends AbstractBookEngine {
+public class EquityBookEngine implements BookEngine {
 
 	private List<Order> bidLimitOrders;
 	private List<Order> askLimitOrders;
@@ -16,10 +16,9 @@ public class EquityBookEngine extends AbstractBookEngine {
 	private AbstractQueue<Order> updatedOrders;
 	
 	/*
-	 * When BookEngine object is created, it gets access to all Instrument books - probably could do this initialization in the Abstract class
-	 * This eliminates passing those books around from method to method
+	 * When BookEngine object is created, it gets access to all Instrument books 
 	 */
-	protected EquityBookEngine(List<Order> bidLimitOrders, List<Order> askLimitOrders, List<Order> filledOrders, 
+	public EquityBookEngine(List<Order> bidLimitOrders, List<Order> askLimitOrders, List<Order> filledOrders, 
 			List<Order> partiallyFilledOrders, AbstractQueue<Order> updatedOrders){
 		
 		this.bidLimitOrders = bidLimitOrders;
@@ -30,12 +29,7 @@ public class EquityBookEngine extends AbstractBookEngine {
 		this.updatedOrders = updatedOrders;
 	}
 	
-	@Override
-	/*
-	 * An order can only be cancelled, if it in one of the books, i.e. bidLimitOrders or askLimitOrders
-	 * If an order is not found to be in those books, this method returns null
-	 */
-	protected Order processCancelOrder(Order order){
+	public Order processCancelOrder(Order order){
 		Order o;
 		if(order.side() == core.Order.Side.BUY){
 			Iterator<Order> iter = bidLimitOrders.iterator();
@@ -67,8 +61,7 @@ public class EquityBookEngine extends AbstractBookEngine {
 		return null;
 	}
 	
-	@Override
-	protected void processNewOrder(Order order) {
+	public void processNewOrder(Order order) {
 		//try to match new order straight away
 		matchOrder(order);
 		
@@ -96,7 +89,7 @@ public class EquityBookEngine extends AbstractBookEngine {
 	 * Uses mergesort with nlog(n) performance and stability.
 	 */
 	
-	protected void insertOrder(Order order){
+	public void insertOrder(Order order){
 			
 		if(order.side() == core.Order.Side.BUY){
 				bidLimitOrders.add(order);
@@ -113,8 +106,7 @@ public class EquityBookEngine extends AbstractBookEngine {
 		}
 	}
 	
-	@Override
-	protected void matchOrder(Order order) {
+	private void matchOrder(Order order) {
 		//deal with market order price discovery here, so that the actual matching already deals with correct price
 		
 		if(order.side() == core.Order.Side.BUY){	
@@ -212,7 +204,7 @@ public class EquityBookEngine extends AbstractBookEngine {
 				iter.remove();
 		}
 	}
-	//clean up partiallyFilledOrders by removing an object with the same reference
+	//add to partiallyFilledOrders by removing an object with the same reference
 	//and then adding the same element, but with updated internal state
 	private void addToPartiallyFilledOrders(Order order){
 		
@@ -237,6 +229,8 @@ public class EquityBookEngine extends AbstractBookEngine {
 		}
 	}
 	
+	//add to filled orders by removing an object with the same reference
+	//and adding the same object, but with updated internal state
 	private void addToFilledOrders(Order order){
 		if(filledOrders.contains(order)){
 			filledOrders.remove(order);
@@ -245,6 +239,9 @@ public class EquityBookEngine extends AbstractBookEngine {
 		else
 			filledOrders.add(order);
 	}
+	
+	//clean up partiallyFilledOrders by eliminating already filled orders, and moving
+	//them into filledOrders
 	private void cleanUpPartiallyFilledOrders(){
 		Iterator<Order> iter = partiallyFilledOrders.iterator();
 		while(iter.hasNext()){
