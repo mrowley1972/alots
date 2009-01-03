@@ -58,9 +58,10 @@ public class StockExchange {
 	}
 	public void stop(){
 		try{
+			op.join(1000);
 			orders.clear();
 			clientOrdersDB.clear();
-			op.join();
+			started = false;
 		}
 		catch(InterruptedException e){
 			System.out.println("STOP EXCEPTION: " + e.getMessage());
@@ -83,6 +84,7 @@ public class StockExchange {
 	public List<Order> getInstrumentBidBook(String tickerSymbol){
 		if(!started)
 			throw new MarketsClosedException("The market is currently closed");
+		
 		Instrument instrument = findInstrument(tickerSymbol);
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol " + tickerSymbol);
@@ -114,7 +116,8 @@ public class StockExchange {
 	 * @return orderID		an id of this submitted order
 	 * @exception IllegalArgumentException if parameters do not comply
 	 */
-	public long createOrder(String tickerSymbol, int clientID, String side, String type, double price, long quantity){
+	public synchronized long createOrder(String tickerSymbol, int clientID, 
+			String side, String type, double price, long quantity){
 	
 		// Validate all of the order's parameters
 		Instrument instrument = findInstrument(tickerSymbol);
@@ -174,7 +177,7 @@ public class StockExchange {
 	 * been filled
 	 * @exception MarketsClosedException if the market is not currently opened
 	 */
-	public Order cancelOrder(int clientID, long orderID){
+	public synchronized Order cancelOrder(int clientID, long orderID){
 		if(!started)
 			throw new MarketsClosedException("The market is currently closed");
 		
@@ -191,7 +194,7 @@ public class StockExchange {
 	 * @param tickerSymbol a correct ticker symbol for this instrument
 	 * @return void
 	 */
-	public void registerInstrument(String tickerSymbol){
+	public synchronized void registerInstrument(String tickerSymbol){
 		Instrument instrument = findInstrument(tickerSymbol);
 		if(instrument == null){
 			instrument = new Instrument(tickerSymbol, updatedOrders);
@@ -255,12 +258,19 @@ public class StockExchange {
 		return instrument.getAskVolume();
 	}
 	
-	//TODO: calling this method causes the state of books to change, find out why
+	
 	public long getInstrumentBuyVolume(String tickerSymbol){
 		Instrument instrument = findInstrument(tickerSymbol);
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
 		return instrument.getBuyVolume();
+	}
+	
+	public long getInstrumentSellVolume(String tickerSymbol){
+		Instrument instrument = findInstrument(tickerSymbol);
+		if(instrument == null)
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+		return instrument.getSellVolume();
 	}
 	
 	// Helper method to ease testing
@@ -270,6 +280,8 @@ public class StockExchange {
 			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
 		return instrument;
 	}
+	
+	
 	private void processOrder(Order order){
 		//add the order to the processing queue
 		try{

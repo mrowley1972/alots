@@ -2,19 +2,13 @@
  * @author Asset Tarabayev
  */
 
-/*
- * TODO: CRUCIAL - figure out how to save and update partially filled orders, and executed orders
- * TODO: CRUCIAL - figure out how to update clients about the status of their orders - might have
- * to be postponed until Client/Server architecture is in place
- * 
- */
 package core;
 
 import java.util.*;
 
 public class Order {
 	/*
-	 * Holds a history of all fills that took place
+	 * Holds a history of all trades that took place
 	 */
 	List<OrderTrade> trades;
 
@@ -86,8 +80,7 @@ public class Order {
 		orderID = Order.nextID++;
 		
 		/*The entry time is measured to the nearest millisecond, which is important when multiple agents 
-		 * place orders nearly simulataneously - this decides the position in the book if the price is 
-		 * the same
+		 * place orders nearly simulataneously - this decides the position in the book if the price is the same
 		 */
 		this.entryTime = new Date();
 		trades = new Vector<OrderTrade>();
@@ -162,10 +155,6 @@ public class Order {
 		return executedQuantity;
 	}
 	
-	/* TODO: need to decide how average executed price is calculated and whether we should store it or just
-	 * calculate on the fly everytime it's requested
-	 */
-	
 	public double getAverageExecutedPrice(){
 		double price = 0.0;
 		for(OrderTrade fill: trades){
@@ -173,9 +162,6 @@ public class Order {
 		}
 		return price/trades.size();
 	}
-	
-	/* TODO: decide at what point the last executed price and last executed quantity is updated
-	 */
 	
 	public double getLastExecutedPrice(){
 		return trades.get(trades.size()-1).getTradePrice();
@@ -186,17 +172,18 @@ public class Order {
 	}
 	
 	public String toString(){
-		return "Instrument: " + instrument + " "+ "Type: "+ type().toString() + " " + "Side: " + side().toString() + " " + 
+		return "OrderID: " + orderID + " " + "Instrument: " + instrument + " "+ "Type: "+ type().toString() + " " 
+		+ "Side: " + side().toString() + " " + 
 			"Total Volume: " + quantity + " " + "Price: $" + price + " " + "Open Volume: " +
 						openQuantity + " " + "Executed volume: " + executedQuantity;
 	}
 	
 	
-	public int getNumberOfFills(){
+	public int getNumberOfTrades(){
 		return trades.size();
 	}
 	
-	public void printFills(){
+	public void printTrades(){
 		for(OrderTrade fill: trades)
 			System.out.println("\n" + fill.toString());
 	}

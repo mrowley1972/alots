@@ -1,6 +1,5 @@
 package core;
 
-import java.util.AbstractQueue;
 import java.util.concurrent.BlockingQueue;
 
 /**
@@ -25,7 +24,7 @@ public class OrderProcessor implements Runnable {
 				order.getInstrument().processNewOrder(order);
 			}
 			catch(InterruptedException e){
-				
+				e.printStackTrace();
 			}
 		}
 		

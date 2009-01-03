@@ -54,7 +54,7 @@ public class OrderTest {
 	public void verifyAverageCalculationsAndFills(){
 		Assert.assertEquals(order.getAverageExecutedPrice(), 12.5);
 		Assert.assertEquals(order.getLastExecutedPrice(), 11.0);
-		Assert.assertEquals(order.getNumberOfFills(), 2);
+		Assert.assertEquals(order.getNumberOfTrades(), 2);
 		Assert.assertEquals(order.getLastExecutedVolume(), 30);
 	}
 	
