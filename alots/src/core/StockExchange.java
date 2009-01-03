@@ -1,10 +1,14 @@
 /**
  * 
- * @author Asset
- * This is the only class that clients are permitted to connect to.
+ * StockExchange is the only class that clients are able to connect to directly.
  * It delegates all calls to necessary classes, returns and wraps results to clients.
  * Individual instruments keep their own ask and bid books, as well as executed and partially executed orders.
+ * This class keeps a queue of all currently outstanting orders, as well as a queue of updated orders. It
+ * also keeps track of all currently traded instruments and keeps record of client's individual orders.
+ * Currently only one thread operates on processing orders, but a ThreadPool of such order processors 
+ * can be maintained in the future.
  * 
+ * @author Asset Tarabayev
  */
 
 package core;
@@ -50,12 +54,18 @@ public class StockExchange {
 		return ++StockExchange.nextClientID;
 	}
 	
+	/**
+	 * Start the exchange
+	 */
 	public void start(){
 		if(!started){
 			started = true;
 			op.start();
 		}
 	}
+	/**
+	 * Stop the exchange.
+	 */
 	public void stop(){
 		try{
 			op.join(1000);
@@ -69,14 +79,14 @@ public class StockExchange {
 		}
 	}
 	/**
-	 * Check whether the exchange is operating
+	 * Check whether the exchange is open
 	 * @return true if the exchange is operating, false otherwise
 	 */
 	public boolean isOpen(){
 		return started;
 	}
 	/**
-	 * Get latest bid order book for a particular instrument
+	 * Get latest bid order book for an instrument
 	 * @param tickerSymbol ticker symbol of a traded instrument
 	 * @return current bid order book for this instrument
 	 * @exception IllegalArgumentException if instrument's ticker symbol is incorrect
@@ -92,7 +102,7 @@ public class StockExchange {
 	}
 	
 	/**
-	 * Get latest ask order book for a particular instrument
+	 * Get latest ask order book for an instrument
 	 * @param tickerSymbol ticker symbol of a traded instrument
 	 * @return current ask order book for this instrument
 	 * @exception IllegalArgumentException if instrument's ticker symbol is incorrect
@@ -216,14 +226,14 @@ public class StockExchange {
 	}
 	
 	/*
-	 * The following, are all delegating methods. 
+	 * The following are delegating methods to Instrument class. Client must not be able to obtain Instrument object directly
 	 */
 	
 	/**
 	 * Get the last price of an instrument
 	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
-	 * @return this instrument's last price
-	 * @exception IllegalArgumentException if wrong ticker symbol has been passed
+	 * @return instrument's last price
+	 * @exception IllegalArgumentException if invalid ticker symbol is passed
 	 */
 	public double getInstrumentLastPrice(String tickerSymbol){
 		Instrument instrument = findInstrument(tickerSymbol);
@@ -235,8 +245,8 @@ public class StockExchange {
 	/**
 	 * Get the total volume of instrument's bid order book
 	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
-	 * @return this instrument's bid order book volume
-	 * @exception IllegalArgumentException if wrong ticker symbol has been passed
+	 * @return instrument's bid order book volume
+	 * @exception IllegalArgumentException if invalid ticker symbol is passed
 	 */
 	public long getInstrumentBidVolume(String tickerSymbol){
 		Instrument instrument = findInstrument(tickerSymbol);
@@ -248,8 +258,8 @@ public class StockExchange {
 	/**
 	 * Get the total volume of instrument's ask order book
 	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
-	 * @return this instrument's ask order book volume
-	 * @exception IllegalArgumentException if wrong ticker symbol has been passed
+	 * @return instrument's ask order book volume
+	 * @exception IllegalArgumentException if invalid ticker symbol is passed
 	 */
 	public long getInstrumentAskVolume(String tickerSymbol){
 		Instrument instrument = findInstrument(tickerSymbol);
@@ -258,7 +268,12 @@ public class StockExchange {
 		return instrument.getAskVolume();
 	}
 	
-	
+	/**
+	 * Get instrument's buy volume
+	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @return instrument's buy volume
+	 * @exception IllegalArgumentException if invalid ticker symbol is passed
+	 */
 	public long getInstrumentBuyVolume(String tickerSymbol){
 		Instrument instrument = findInstrument(tickerSymbol);
 		if(instrument == null)
@@ -266,6 +281,12 @@ public class StockExchange {
 		return instrument.getBuyVolume();
 	}
 	
+	/**
+	 * Get instrument's sell volume
+	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @return instrument's sell volume
+	 * @exception IllegalArgumentException if invalid ticker symbol is passed
+	 */
 	public long getInstrumentSellVolume(String tickerSymbol){
 		Instrument instrument = findInstrument(tickerSymbol);
 		if(instrument == null)
@@ -273,14 +294,57 @@ public class StockExchange {
 		return instrument.getSellVolume();
 	}
 	
-	// Helper method to ease testing
-	protected Instrument getInstrument(String tickerSymbol){
+	/**
+	 * Get instrument's average buy price
+	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @return instrument's average buy price
+	 * @exception IllegalArgumentException if invalid ticker symbol is passed
+	 */
+	public double getInstrumentAverageBuyPrice(String tickerSymbol){
 		Instrument instrument = findInstrument(tickerSymbol);
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
-		return instrument;
+		return instrument.getAverageBuyPrice();
 	}
 	
+	/**
+	 * Get instrument's average sell price
+	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @return instrument's average sell price
+	 * @exception IllegalArgumentException if invalid ticker symbol is passed
+	 */
+	public double getInstrumentAverageSellPrice(String tickerSymbol){
+		Instrument instrument = findInstrument(tickerSymbol);
+		if(instrument == null)
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+		return instrument.getAverageSellPrice();
+	}
+	
+	/**
+	 * Get instrument's bid volume-weighted average price (VWAP)
+	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @return instrument's bid VWAP
+	 * @exception IllegalArgumentException if invalid ticker symbol is passed
+	 */
+	public double getInstrumentBidVWAP(String tickerSymbol){
+		Instrument instrument = findInstrument(tickerSymbol);
+		if(instrument == null)
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+		return instrument.getBidVWAP();
+	}
+	
+	/**
+	 * Get instrument's ask volume-weighted average price (VWAP)
+	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @return instrument's ask VWAP
+	 * @exception IllegalArgumentException if invalid ticker symbol is passed
+	 */
+	public double getInstrumentAskVWAP(String tickerSymbol){
+		Instrument instrument = findInstrument(tickerSymbol);
+		if(instrument == null)
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+		return instrument.getAskVWAP();
+	}
 	
 	private void processOrder(Order order){
 		//add the order to the processing queue
@@ -299,6 +363,7 @@ public class StockExchange {
 			return instruments.get(symbol);
 		return null;
 	}
+	
 	private ClientOrders findClientOrders(int clientID){
 		
 		if(clientOrdersDB.containsKey(clientID))
@@ -307,6 +372,12 @@ public class StockExchange {
 		return new ClientOrders(clientID);
 	}
 	
-	
-	
+
+	// Helper method to ease testing, must only be used during testing
+	protected Instrument getInstrument(String tickerSymbol){
+		Instrument instrument = findInstrument(tickerSymbol);
+		if(instrument == null)
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+		return instrument;
+	}
 }

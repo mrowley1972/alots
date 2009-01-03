@@ -4,11 +4,10 @@ import java.util.AbstractMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 
- * @author Asset
- * This class holds orders for a client. This is necessary to ensure client-order integrity
- * Client has to know orderIDs of his/her own orders, otherwise there is no way to track an order
+ * This class holds orders for a client. This class is necessary to ensure client-order integrity. 
+ * Client has to know orderIDs of his/her own orders, otherwise there is no way to track an order. 
  * The orderID is returned back to the client everytime a new order is created.
+ * @author Asset Tarabayev
  */
 
 public class ClientOrders {
