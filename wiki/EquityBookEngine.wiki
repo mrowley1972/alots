@@ -1,4 +1,4 @@
-#summary This page has all of the *EquityBookEngine* class development discussion.
+#summary This page has all of the EquityBookEngine class development discussion.
 
 = Introduction =
 
