@@ -50,10 +50,10 @@ public class StockExchangeTest {
 	//As soon as orders are created, they are executed in the order they are picked up from the queue by a thread
 	@Test(dependsOnMethods = {"verifyAdditionOfInstruments"})
 	public void verifyAdditionOfOrders(){
-		stockExchange.createOrder("MSFT", 1, "Buy", "Limit", 24.43, 1000);
-		stockExchange.createOrder("MSFT", 2, "Buy", "Market", 0.0, 500);
-		stockExchange.createOrder("MSFT", 2, "Sell", "Market", 0.0, 500);
-		stockExchange.createOrder("MSFT", 2, "Sell", "Market", 0.0, 500);
+		stockExchange.submitOrder("MSFT", 1, "Buy", "Limit", 24.43, 1000);
+		stockExchange.submitOrder("MSFT", 2, "Buy", "Market", 0.0, 500);
+		stockExchange.submitOrder("MSFT", 2, "Sell", "Market", 0.0, 500);
+		stockExchange.submitOrder("MSFT", 2, "Sell", "Market", 0.0, 500);
 		
 		try{
 			Thread.sleep(2000);
@@ -79,6 +79,11 @@ public class StockExchangeTest {
 			Assert.assertEquals(stockExchange.getInstrumentBuyVolume("MSFT"), 1000);
 			Assert.assertEquals(stockExchange.getInstrumentSellVolume("MSFT"), 1000);
 			Assert.assertEquals(stockExchange.getInstrumentLastPrice("MSFT"), 24.43);
+			
+			stockExchange.cancelOrder(2, 10001);
+			Thread.sleep(100);
+			Assert.assertEquals(stockExchange.getInstrumentBidBook("MSFT").size(), 0);
+			
 		}
 		catch(InterruptedException e){
 			e.printStackTrace();
@@ -86,59 +91,5 @@ public class StockExchangeTest {
 	}
 	
 }
-	
-	//The following tests are commented out, as they cause problems with other tests after them... 
-	//This is due to matching happening too quickly by a processing thread
-	//and hence other tests checking state of books start to fail.
-	//However, they do give correct resulsts by themselves, which is good enough
-	
-	/*
-	@Test(expectedExceptions = IllegalArgumentException.class)
-	public void verifyNonValidInstrumentOrder(){
-		stockExchange.start();
-		long order = stockExchange.createOrder("MSFT", 1, "buy", "limit", 24.95, 2000);
-		stockExchange.stop();
-	}
-	
-	@Test(dependsOnMethods = {"verifyNonValidInstrumentOrder"})
-	public void verifyValidInstrumentOrder(){
-		stockExchange.registerInstrument("MSFT");
-		long order = stockExchange.createOrder("MSFT", 1, "buy", "limit", 24.54, 1000);
-	}
-	@Test(expectedExceptions = IllegalArgumentException.class)
-	public void verifyNonValidSideOrder(){
-		stockExchange.registerInstrument("MSFT");
-		long order = stockExchange.createOrder("MSFT", 1, "deal", "limit", 12.33, 1000);
-	}
-	@Test(expectedExceptions = IllegalArgumentException.class)
-	public void verifyNonValidTypeOrder(){
-		stockExchange.registerInstrument("MSFT");
-		long order = stockExchange.createOrder("MSFT", 1, "buy", "stop", 12.33, 1000);
-	}
-	@Test(expectedExceptions = IllegalArgumentException.class)
-	public void verifyNonValidPriceOrder(){
-		stockExchange.registerInstrument("MSFT");
-		long order = stockExchange.createOrder("MSFT", 1, "buy", "limit", -12.43, 1000);
-	}
-	@Test(expectedExceptions = IllegalArgumentException.class)
-	public void verifyNonValidQuantityOrder(){
-		stockExchange.registerInstrument("MSFT");
-		long order = stockExchange.createOrder("MSFT", 1, "buy", "limit", 12.33, 0);
-	}
-	@Test
-	public void verifyCorrectOrderPlacement(){
-		stockExchange.registerInstrument("GOOG");
-		long order = stockExchange.createOrder("GOOG", 2, "buy", "limit", 24.56, 100);
-	}
-	
-	@Test(expectedExceptions = IllegalArgumentException.class)
-	public void verifyNonValidTickerSymbolAskBook(){
-		stockExchange.getInstrumentAskBook("CSCO");
-	}
-	@Test(expectedExceptions = IllegalArgumentException.class)
-	public void verifyNonValidTickerSymbolBuyBook(){
-		stockExchange.getInstrumentBidBook("CSCO");
-	}
-	*/
-	
+
 

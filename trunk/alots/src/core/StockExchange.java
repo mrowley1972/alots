@@ -85,37 +85,7 @@ public class StockExchange {
 	public boolean isOpen(){
 		return started;
 	}
-	/**
-	 * Get latest bid order book for an instrument
-	 * @param tickerSymbol ticker symbol of a traded instrument
-	 * @return current bid order book for this instrument
-	 * @exception IllegalArgumentException if instrument's ticker symbol is incorrect
-	 */
-	public List<Order> getInstrumentBidBook(String tickerSymbol){
-		if(!started)
-			throw new MarketsClosedException("The market is currently closed");
-		
-		Instrument instrument = findInstrument(tickerSymbol);
-		if(instrument == null)
-			throw new IllegalArgumentException("Invalid ticker symbol " + tickerSymbol);
-		return instrument.getBidLimitOrders();
-	}
 	
-	/**
-	 * Get latest ask order book for an instrument
-	 * @param tickerSymbol ticker symbol of a traded instrument
-	 * @return current ask order book for this instrument
-	 * @exception IllegalArgumentException if instrument's ticker symbol is incorrect
-	 */
-	public List<Order> getInstrumentAskBook(String tickerSymbol){
-		if(!started)
-			throw new MarketsClosedException("The market is currently closed");
-		Instrument instrument = findInstrument(tickerSymbol);
-		if(instrument == null)
-			throw new IllegalArgumentException("Invalid ticker symbol "+ tickerSymbol);
-		return instrument.getAskLimitOrders();
-	}
-
 	/**
 	 * Submit an order to the exchange to be traded
 	 * @param tickerSymbol  a valid traded instrument's ticker symbol
@@ -126,7 +96,7 @@ public class StockExchange {
 	 * @return orderID		an id of this submitted order
 	 * @exception IllegalArgumentException if parameters do not comply
 	 */
-	public synchronized long createOrder(String tickerSymbol, int clientID, 
+	public synchronized long submitOrder(String tickerSymbol, int clientID, 
 			String side, String type, double price, long quantity){
 	
 		// Validate all of the order's parameters
@@ -170,6 +140,7 @@ public class StockExchange {
 		
 		//finally process this order and return the object
 		processOrder(order);
+		//return of a unique orderID indicates a confirmation that an order has been submitted.
 		return order.getOrderID();
 	}
 	/*
@@ -183,8 +154,8 @@ public class StockExchange {
 	 * 
 	 * @param 	clientID  valid client's own id, assigned by the StockExchange during connection
 	 * @param 	orderID   one of orderIDs that this client has for own orders
-	 * @return 	an order object that was requested to be cancelled, <code>null</code> if the order does not exist, does not belong to this client or has already 
-	 * been filled
+	 * @return 	an order object that was requested to be cancelled, <code>null</code> if the order does not exist, does not belong
+	 *  to this client or has already been filled (specific reason is hard to trace back).
 	 * @exception MarketsClosedException if the market is not currently opened
 	 */
 	public synchronized Order cancelOrder(int clientID, long orderID){
@@ -213,18 +184,36 @@ public class StockExchange {
 	}
 	
 	/**
-	 * Get a list of currently traded instruments.
-	 * @return a list of currently traded instruments, <code>null</code> if there are no instruments being traded.
+	 * Get latest bid order book for an instrument
+	 * @param tickerSymbol ticker symbol of a traded instrument
+	 * @return current bid order book for this instrument
+	 * @exception IllegalArgumentException if instrument's ticker symbol is incorrect
 	 */
-	public List<String> getTradedInstrumentsList(){
-		Iterator<String> iter = instruments.keySet().iterator();
-		List<String> list = new ArrayList<String>();
-		while(iter.hasNext()){
-			list.add(iter.next());
-		}
-		return list;
+	public List<Order> getInstrumentBidBook(String tickerSymbol){
+		if(!started)
+			throw new MarketsClosedException("The market is currently closed");
+		
+		Instrument instrument = findInstrument(tickerSymbol);
+		if(instrument == null)
+			throw new IllegalArgumentException("Invalid ticker symbol " + tickerSymbol);
+		return instrument.getBidLimitOrders();
 	}
 	
+	/**
+	 * Get latest ask order book for an instrument
+	 * @param tickerSymbol ticker symbol of a traded instrument
+	 * @return current ask order book for this instrument
+	 * @exception IllegalArgumentException if instrument's ticker symbol is incorrect
+	 */
+	public List<Order> getInstrumentAskBook(String tickerSymbol){
+		if(!started)
+			throw new MarketsClosedException("The market is currently closed");
+		Instrument instrument = findInstrument(tickerSymbol);
+		if(instrument == null)
+			throw new IllegalArgumentException("Invalid ticker symbol "+ tickerSymbol);
+		return instrument.getAskLimitOrders();
+	}
+
 	/*
 	 * The following are delegating methods to Instrument class. Client must not be able to obtain Instrument object directly
 	 */
@@ -355,6 +344,19 @@ public class StockExchange {
 			System.out.println("ORDER QUEUE EXCEPTION: " + e.getMessage());
 			e.printStackTrace();
 		}
+	}
+
+	/**
+	 * Get a list of currently traded instruments.
+	 * @return a list of currently traded instruments, <code>null</code> if there are no instruments being traded.
+	 */
+	public List<String> getTradedInstrumentsList(){
+		Iterator<String> iter = instruments.keySet().iterator();
+		List<String> list = new ArrayList<String>();
+		while(iter.hasNext()){
+			list.add(iter.next());
+		}
+		return list;
 	}
 	
 	private Instrument findInstrument(String tickerSymbol){
