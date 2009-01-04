@@ -60,30 +60,29 @@ public class Order {
 	private long openQuantity;
 	private long executedQuantity;
 	
-	private static int nextID = 10000;
+	private static long nextID = 10000;
 	
 	public Order(int clientID, Instrument instrument, Side side, Type type, long quantity, double price){
 		this.clientID = clientID;
 		this.instrument = instrument;
 		this.side = side;
 		this.type = type;
-		
-		if(quantity< 0)
-			this.quantity = 0;
-		else 
-			this.quantity = quantity;
-		
+		this.quantity = quantity;
 		this.price = price;
-		
+
 		openQuantity = quantity;
 		executedQuantity = 0;
-		orderID = Order.nextID++;
+		orderID = Order.generateOrderID();
 		
 		/*The entry time is measured to the nearest millisecond, which is important when multiple agents 
 		 * place orders nearly simulataneously - this decides the position in the book if the price is the same
 		 */
 		this.entryTime = new Date();
 		trades = new Vector<OrderTrade>();
+	}
+	
+	private static long generateOrderID(){
+		return nextID++;
 	}
 	
 	protected Type type(){ 
@@ -172,10 +171,10 @@ public class Order {
 	}
 	
 	public String toString(){
-		return "OrderID: " + orderID + " " + "Instrument: " + instrument + " "+ "Type: "+ type().toString() + " " 
-		+ "Side: " + side().toString() + " " + 
-			"Total Volume: " + quantity + " " + "Price: $" + price + " " + "Open Volume: " +
-						openQuantity + " " + "Executed volume: " + executedQuantity;
+		return "Symbol: " + instrument.toString() + " " + "Quantity: " + quantity + " " +
+		" " + "Open: " + openQuantity + " " + "Executed: " + executedQuantity + " " +
+		"Side: " + side + " " + "Type: " + type + " " + "Price: " + price;
+		
 	}
 	
 	

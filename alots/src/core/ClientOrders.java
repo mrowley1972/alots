@@ -33,7 +33,7 @@ public class ClientOrders {
 	}
 	
 	/*
-	 * returns true is the client had specified order, and subsequently removes it.
+	 * returns true if the client had specified order, and subsequently removes it.
 	 * returns false otherwise.
 	 */
 	protected boolean removeOrder(Order order){
@@ -55,5 +55,9 @@ public class ClientOrders {
 			return orders.get(orderID);
 		}
 		return null;
+	}
+	
+	public String toString(){
+		return orders.toString();
 	}
 }
