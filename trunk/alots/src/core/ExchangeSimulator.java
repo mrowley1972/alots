@@ -1,6 +1,6 @@
 /**
  * 
- * StockExchange is the only class that clients are able to connect to directly.
+ * StockExchange is the only class that clients are able to connect to directly through RMI.
  * It delegates all calls to necessary classes, returns and wraps results to clients.
  * Individual instruments keep their own ask and bid books, as well as executed and partially executed orders.
  * This class keeps a queue of all currently outstanting orders, as well as a queue of updated orders. It
@@ -13,6 +13,10 @@
 
 package core;
 
+import java.rmi.RMISecurityManager;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.AbstractMap;
 import java.util.AbstractQueue;
 import java.util.ArrayList;
@@ -22,7 +26,10 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
-public class StockExchange {
+import common.IExchangeSimulator;
+import common.IOrder;
+
+public class ExchangeSimulator implements IExchangeSimulator {
 
 	private AbstractMap<Integer, ClientOrders> clientOrdersDB;
 	private AbstractMap<String, Instrument> instruments;
@@ -41,7 +48,7 @@ public class StockExchange {
 	/**
 	 * Creates a <code>StockExchange</code> with default implementation
 	 */
-	public StockExchange(){
+	public ExchangeSimulator(){
 		clientOrdersDB = new ConcurrentHashMap<Integer, ClientOrders>();
 		instruments = new ConcurrentHashMap<String, Instrument>();
 		orders = new LinkedBlockingQueue<Order>();
@@ -51,7 +58,7 @@ public class StockExchange {
 	}
 	
 	protected int generateClientID(){
-		return ++StockExchange.nextClientID;
+		return ++ExchangeSimulator.nextClientID;
 	}
 	
 	/**
@@ -66,7 +73,7 @@ public class StockExchange {
 	/**
 	 * Stop the exchange.
 	 */
-	public void stop(){
+	protected void stop(){
 		try{
 			op.join(1000);
 			orders.clear();
@@ -189,7 +196,7 @@ public class StockExchange {
 	 * @return current bid order book for this instrument
 	 * @exception IllegalArgumentException if instrument's ticker symbol is incorrect
 	 */
-	public List<Order> getInstrumentBidBook(String tickerSymbol){
+	public List<IOrder> getInstrumentBidBook(String tickerSymbol){
 		if(!started)
 			throw new MarketsClosedException("The market is currently closed");
 		
@@ -205,7 +212,7 @@ public class StockExchange {
 	 * @return current ask order book for this instrument
 	 * @exception IllegalArgumentException if instrument's ticker symbol is incorrect
 	 */
-	public List<Order> getInstrumentAskBook(String tickerSymbol){
+	public List<IOrder> getInstrumentAskBook(String tickerSymbol){
 		if(!started)
 			throw new MarketsClosedException("The market is currently closed");
 		Instrument instrument = findInstrument(tickerSymbol);
@@ -374,12 +381,32 @@ public class StockExchange {
 		return new ClientOrders(clientID);
 	}
 	
-
 	// Helper method to ease testing, must only be used during testing
 	protected Instrument getInstrument(String tickerSymbol){
 		Instrument instrument = findInstrument(tickerSymbol);
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
 		return instrument;
+	}
+	
+	public static void main(String args[]){
+		if(System.getSecurityManager() == null){
+			System.setSecurityManager(new RMISecurityManager());
+		}
+		try{
+			String name = "ExchangeSimulator";
+			ExchangeSimulator exchangeSimulator = new ExchangeSimulator();
+			exchangeSimulator.start();
+			
+			IExchangeSimulator stub = (IExchangeSimulator) UnicastRemoteObject.exportObject(exchangeSimulator, 3000);
+			Registry registry = LocateRegistry.getRegistry();
+			registry.rebind(name, stub);
+			System.out.println("Exchange Simulator is bound");
+			
+		}
+		catch(Exception e){
+			System.out.println("ExchangeSimulator exception");
+			e.printStackTrace();
+		}
 	}
 }

@@ -16,6 +16,8 @@ import java.util.AbstractQueue;
 import java.util.List;
 import java.util.Vector;
 
+import common.IOrder;
+
 
 public class Instrument {
 	/*
@@ -53,15 +55,15 @@ public class Instrument {
 	 * Get the bid order book
 	 * @return a Vector of bid limit orders
 	 */
-	protected List<Order> getBidLimitOrders(){
-		return new Vector<Order>(bidLimitOrders);
+	protected List<IOrder> getBidLimitOrders(){
+		return new Vector<IOrder>(bidLimitOrders);
 	}
 	/**
 	 * Get the ask order book
 	 * @return a Vector of ask limit orders
 	 */
-	protected List<Order> getAskLimitOrders(){
-		return new Vector<Order>(askLimitOrders);
+	protected List<IOrder> getAskLimitOrders(){
+		return new Vector<IOrder>(askLimitOrders);
 	}
 	/**
 	 * Get the book of fully filled orders

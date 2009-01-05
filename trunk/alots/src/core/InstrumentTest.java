@@ -2,10 +2,10 @@ package core;
 import java.util.AbstractQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import core.*;
-
 import org.testng.annotations.*;
 import org.testng.Assert;
+
+import common.IOrder;
 
 public class InstrumentTest {
 
@@ -140,12 +140,12 @@ public class InstrumentTest {
 		System.out.println();
 		System.out.println("**********BOOKS STATE***********");
 		System.out.println("Bid book state: ");
-		for(Order order: instrument.getBidLimitOrders()){
+		for(IOrder order: instrument.getBidLimitOrders()){
 			System.out.println(order.toString());
 		}
 		System.out.println();
 		System.out.println("Ask book state: ");
-		for(Order order: instrument.getAskLimitOrders()){
+		for(IOrder order: instrument.getAskLimitOrders()){
 			System.out.println(order.toString());
 		}
 		System.out.println();

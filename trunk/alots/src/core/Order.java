@@ -1,12 +1,21 @@
+package core;
+
 /**
  * @author Asset Tarabayev
  */
 
-package core;
+import common.IOrder;
 
-import java.util.*;
+import java.io.Serializable;
+import java.util.Date;
+import java.util.List;
+import java.util.Vector;
 
-public class Order {
+public class Order implements IOrder, Serializable{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	/*
 	 * Holds a history of all trades that took place
 	 */
@@ -74,9 +83,6 @@ public class Order {
 		executedQuantity = 0;
 		orderID = Order.generateOrderID();
 		
-		/*The entry time is measured to the nearest millisecond, which is important when multiple agents 
-		 * place orders nearly simulataneously - this decides the position in the book if the price is the same
-		 */
 		this.entryTime = new Date();
 		trades = new Vector<OrderTrade>();
 	}
@@ -85,11 +91,11 @@ public class Order {
 		return nextID++;
 	}
 	
-	protected Type type(){ 
+	public Type type(){ 
 		return type;
 	}
 	
-	protected Side side(){ 
+	public Side side(){ 
 		return side;
 	}
 	
@@ -115,12 +121,16 @@ public class Order {
 		executedQuantity += volume;
 	}
 	
-	public Vector<OrderTrade> getTrades(){
+	protected Vector<OrderTrade> getTrades(){
 		return new Vector<OrderTrade>(trades);
 	}
 	
-	public Instrument getInstrument(){
+	protected Instrument getInstrument(){
 		return instrument;
+	}
+	
+	public String getInstrumentName(){
+		return instrument.toString();
 	}
 	
 	public double getPrice(){
@@ -177,13 +187,12 @@ public class Order {
 		
 	}
 	
-	
 	public int getNumberOfTrades(){
 		return trades.size();
 	}
 	
 	public void printTrades(){
-		for(OrderTrade fill: trades)
-			System.out.println("\n" + fill.toString());
+		for(OrderTrade trade: trades)
+			System.out.println(trade.toString());
 	}
 }
