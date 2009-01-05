@@ -3,13 +3,15 @@ import java.util.List;
 import org.testng.annotations.*;
 import org.testng.Assert;
 
-public class StockExchangeTest {
+import common.IOrder;
 
-	StockExchange stockExchange;
+public class ExchangeSimulatorTest {
+
+	ExchangeSimulator stockExchange;
 	
 	@BeforeClass
 	public void setUp(){
-		stockExchange = new StockExchange();
+		stockExchange = new ExchangeSimulator();
 	}
 	
 	@Test
@@ -28,12 +30,17 @@ public class StockExchangeTest {
 	private void addInstrument(String instrument){
 		stockExchange.registerInstrument(instrument);
 	}
-	private void printBook(List<Order> book){
+	private void printOrderBook(List<Order> book){
 		for(Order order: book){
 			System.out.println(order.toString());
 		}
 	}
 	
+	private void printIOrderBook(List<IOrder> book){
+		for(IOrder order: book){
+			System.out.println(order.toString());
+		}
+	}
 	//During testing, it has been uncovered that it is impossible to test parts of program, which are concurrently executing
 	//Thread scheduling is non-deterministic
 	//Hence, the only way of assessing correct execution is by manually examining books
@@ -58,19 +65,19 @@ public class StockExchangeTest {
 		try{
 			Thread.sleep(2000);
 			System.out.println("*** BID BOOK ***");
-			printBook(stockExchange.getInstrumentBidBook("MSFT"));
+			printIOrderBook(stockExchange.getInstrumentBidBook("MSFT"));
 			Assert.assertEquals(stockExchange.getInstrumentBidBook("MSFT").size(), 1);
 			
 			System.out.println("*** ASK BOOK ***");
-			printBook(stockExchange.getInstrumentAskBook("MSFT"));
+			printIOrderBook(stockExchange.getInstrumentAskBook("MSFT"));
 			Assert.assertEquals(stockExchange.getInstrumentAskBook("MSFT").size(), 0);
 			
 			System.out.println("*** FILLED ORDERS ***");
-			printBook(stockExchange.getInstrument("MSFT").getFilledOrders());
+			printOrderBook(stockExchange.getInstrument("MSFT").getFilledOrders());
 			Assert.assertEquals(stockExchange.getInstrument("MSFT").getFilledOrders().size(), 3);
 			
 			System.out.println("*** PARTIALLY FILLED ORDERS ***");
-			printBook(stockExchange.getInstrument("MSFT").getPartiallyFilledOrders());
+			printOrderBook(stockExchange.getInstrument("MSFT").getPartiallyFilledOrders());
 			Assert.assertEquals(stockExchange.getInstrument("MSFT").getPartiallyFilledOrders().size(), 0);
 			System.out.println();
 			
