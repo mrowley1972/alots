@@ -164,12 +164,18 @@ public class Order implements IOrder, Serializable{
 		return executedQuantity;
 	}
 	
+	//This is an average executed price per share
 	public double getAverageExecutedPrice(){
-		double price = 0.0;
-		for(OrderTrade fill: trades){
-			price += fill.tradePrice;
+		double avgPrice = 0.0;
+		long volume = 0;
+		
+		for(OrderTrade trade: trades){
+			avgPrice += (trade.getTradePrice()*trade.getVolume());
+			volume += trade.getVolume();
 		}
-		return price/trades.size();
+		
+		return avgPrice/volume;
+		
 	}
 	
 	public double getLastExecutedPrice(){
