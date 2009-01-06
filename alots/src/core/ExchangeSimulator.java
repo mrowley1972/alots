@@ -166,8 +166,8 @@ public class ExchangeSimulator implements IExchangeSimulator {
 	 * @exception MarketsClosedException if the market is not currently opened
 	 */
 	public synchronized Order cancelOrder(int clientID, long orderID){
-		if(!started)
-			throw new MarketsClosedException("The market is currently closed");
+		//if(!started)
+			//throw new MarketsClosedException("The market is currently closed");
 		
 		Order order = clientOrdersDB.get(clientID).findOrder(orderID);
 		if(order != null){
@@ -197,8 +197,8 @@ public class ExchangeSimulator implements IExchangeSimulator {
 	 * @exception IllegalArgumentException if instrument's ticker symbol is incorrect
 	 */
 	public List<IOrder> getInstrumentBidBook(String tickerSymbol){
-		if(!started)
-			throw new MarketsClosedException("The market is currently closed");
+		//if(!started)
+			//throw new MarketsClosedException("The market is currently closed");
 		
 		Instrument instrument = findInstrument(tickerSymbol);
 		if(instrument == null)
@@ -213,8 +213,8 @@ public class ExchangeSimulator implements IExchangeSimulator {
 	 * @exception IllegalArgumentException if instrument's ticker symbol is incorrect
 	 */
 	public List<IOrder> getInstrumentAskBook(String tickerSymbol){
-		if(!started)
-			throw new MarketsClosedException("The market is currently closed");
+		//if(!started)
+			//throw new MarketsClosedException("The market is currently closed");
 		Instrument instrument = findInstrument(tickerSymbol);
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol "+ tickerSymbol);
@@ -395,10 +395,10 @@ public class ExchangeSimulator implements IExchangeSimulator {
 		}
 		try{
 			String name = "ExchangeSimulator";
-			ExchangeSimulator exchangeSimulator = new ExchangeSimulator();
-			exchangeSimulator.start();
+			IExchangeSimulator exchangeSimulator = new ExchangeSimulator();
+			//exchangeSimulator.start();
 			
-			IExchangeSimulator stub = (IExchangeSimulator) UnicastRemoteObject.exportObject(exchangeSimulator, 3000);
+			IExchangeSimulator stub = (IExchangeSimulator) UnicastRemoteObject.exportObject(exchangeSimulator, 0);
 			Registry registry = LocateRegistry.getRegistry();
 			registry.rebind(name, stub);
 			System.out.println("Exchange Simulator is bound");

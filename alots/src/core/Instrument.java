@@ -34,7 +34,12 @@ public class Instrument {
 	
 	private BookEngine bookEngine;
 	private String tickerSymbol;
-	private double lastPrice;	
+	private double lastPrice;
+	
+	private long bidVolume;
+	private long askVolume;
+	private long buyVolume;
+	private long sellVolume;
 	
 	/**
 	 * Creates an <code>Instrument</code> object with its own bid and ask order books, and book processing engine
@@ -49,6 +54,11 @@ public class Instrument {
 		filledOrders = new Vector<Order>();
 		partiallyFilledOrders = new Vector<Order>();
 		bookEngine = new EquityBookEngine(bidLimitOrders, askLimitOrders, filledOrders, partiallyFilledOrders, updatedOrders);
+		
+		bidVolume = 0;
+		askVolume = 0;
+		buyVolume = 0;
+		sellVolume = 0;
 	}
 	
 	/**
@@ -142,11 +152,11 @@ public class Instrument {
 	 * @return bid volume of <code>this</code> instrument
 	 */
 	protected long getBidVolume(){
-		long volume = 0;
-		for(Order order: bidLimitOrders){
-			volume += order.getOpenQuantity();
-		}
-		return volume;
+		return bidVolume;
+	}
+	
+	protected void updateBidVolume(long volume){
+		bidVolume += volume;
 	}
 
 	/**
@@ -155,11 +165,11 @@ public class Instrument {
 	 * @return ask volume of <code>this</code> instrument
 	 */
 	protected long getAskVolume(){
-		long volume = 0;
-		for(Order order: askLimitOrders){
-			volume += order.getOpenQuantity();
-		}
-		return volume;
+		return askVolume;
+	}
+	
+	protected void updateAskVolume(long volume){
+		askVolume += volume;
 	}
 	
 	/**
@@ -169,17 +179,12 @@ public class Instrument {
 	 * @return <code>this</code> Instrument's buy volume
 	 */
 	protected long getBuyVolume(){
-		long volume = 0;
 		
-		for(Order order: filledOrders){
-			if(order.side() == core.Order.Side.BUY)
-				volume += order.getQuantity();
-		}
-		for(Order order: partiallyFilledOrders){
-			if(order.side() == core.Order.Side.BUY)
-				volume += order.getExecutedQuantity();
-		}
-		return volume;
+		return buyVolume;
+	}
+	
+	protected void updateBuyVolume(long volume){
+		buyVolume += volume;
 	}
 	
 	/**
@@ -188,17 +193,11 @@ public class Instrument {
 	 * @return <code>this</code> Instrument's sell volume
 	 */
 	protected long getSellVolume(){
-		long volume = 0;
-		
-		for(Order order: filledOrders){
-			if(order.side() == core.Order.Side.SELL)
-				volume += order.getQuantity();
-		}
-		for(Order order: partiallyFilledOrders){
-			if(order.side() == core.Order.Side.SELL)
-				volume += order.getExecutedQuantity();
-		}
-		return volume;	
+		return sellVolume;	
+	}
+	
+	protected void updateSellVolume(long volume){
+		sellVolume += volume;
 	}
 	
 	/**
@@ -222,7 +221,6 @@ public class Instrument {
 				orders++;
 			}
 		}
-		
 		return averageOrderPrice/(double)orders;
 	}
 	
