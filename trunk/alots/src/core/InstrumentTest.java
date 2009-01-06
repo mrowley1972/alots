@@ -125,6 +125,14 @@ public class InstrumentTest {
 	}
 	
 	@Test(dependsOnMethods = {"verifyStateOfBooksAfterSellLimitOrders"})
+	public void verifyBookVolumes(){
+		Assert.assertEquals(instrument.getBidVolume(), 13119);
+		Assert.assertEquals(instrument.getAskVolume(), 100);
+		Assert.assertEquals(instrument.getBuyVolume(), 4281);
+		Assert.assertEquals(instrument.getSellVolume(), 4281);
+	}
+	
+	@Test(dependsOnMethods = {"verifyStateOfBooksAfterSellLimitOrders"})
 	public void verifyCancelOrder(){
 		instrument.processCancelOrder(bOrder4);
 		Assert.assertEquals(instrument.getBidLimitOrders().size(), 5);

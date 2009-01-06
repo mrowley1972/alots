@@ -52,7 +52,7 @@ public class Order implements IOrder, Serializable{
 		}
 		
 		public String toString(){
-			return volume + " @$" + tradePrice + " at " + tradeTime;
+			return volume + " @$" + tradePrice;
 		}
 		
 	}
