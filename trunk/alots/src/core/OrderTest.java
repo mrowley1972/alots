@@ -52,7 +52,7 @@ public class OrderTest {
 	
 	@Test (dependsOnMethods = {"verifyVolumeCalculations"})
 	public void verifyAverageCalculationsAndFills(){
-		Assert.assertEquals(order.getAverageExecutedPrice(), 12.5);
+		Assert.assertEquals(order.getAverageExecutedPrice(), 12.2);
 		Assert.assertEquals(order.getLastExecutedPrice(), 11.0);
 		Assert.assertEquals(order.getNumberOfTrades(), 2);
 		Assert.assertEquals(order.getLastExecutedVolume(), 30);
