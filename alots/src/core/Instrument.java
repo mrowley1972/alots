@@ -15,6 +15,7 @@ package core;
 import java.util.AbstractQueue;
 import java.util.List;
 import java.util.Vector;
+import java.math.*;
 
 import common.IOrder;
 
@@ -40,6 +41,25 @@ public class Instrument {
 	private long askVolume;
 	private long buyVolume;
 	private long sellVolume;
+	private double averageBuyPrice;
+	private double averageSellPrice;
+	private double averagePrice;
+	private double bidVWAP;
+	private double askVWAP;
+	
+	//Helper variables to calculate various average statistics
+	private double total_QuantityTimesPrice;
+	private long total_Quantity;
+	private double total_BoughtQuantityTimesPrice;
+	private double total_BoughtQuantity;
+	private double total_SoldQuantityTimesPrice;
+	private double total_SoldQuantity;
+	private double total_AskQuantityTimesPrice;
+	private long total_AskQuantity;
+	private double total_BidQuantityTimesPrice;
+	private long total_BidQuantity;
+	
+	
 	
 	/**
 	 * Creates an <code>Instrument</code> object with its own bid and ask order books, and book processing engine
@@ -59,6 +79,19 @@ public class Instrument {
 		askVolume = 0;
 		buyVolume = 0;
 		sellVolume = 0;
+		averagePrice = 0.0;
+		
+		//Initialise helper variables
+		total_QuantityTimesPrice = 0.0;
+		total_Quantity = 0;
+		total_BoughtQuantityTimesPrice = 0.0;
+		total_BoughtQuantity = 0;
+		total_SoldQuantityTimesPrice = 0.0;
+		total_SoldQuantity = 0;
+		total_AskQuantityTimesPrice = 0.0;
+		total_AskQuantity = 0;
+		total_BidQuantityTimesPrice = 0.0;
+		total_BidQuantity = 0;
 	}
 	
 	/**
@@ -109,11 +142,19 @@ public class Instrument {
 	}
 	
 	/**
-	 * Insert a valid order into either of order books.
+	 * Insert a valid buy order into either of order books.
 	 * @param order an <code>Order</code> object previously checked for its validity.
 	 */
-	protected void insertOrder(Order order){
-		bookEngine.insertOrder(order);
+	protected void insertBuyOrder(Order order){
+		bookEngine.insertBuyOrder(order);
+	}
+	
+	/**
+	 * Insert a valid sell buy order into either of order books.
+	 * @param order an <code>Order</code> object previously checked for its validity.
+	 */
+	protected void insertSellOrder(Order order){
+		bookEngine.insertSellOrder(order);
 	}
 	
 	/**
@@ -124,9 +165,6 @@ public class Instrument {
 		return tickerSymbol;
 	}
 	
-	/*
-	 * lastPrice is set by the matching engine everytime an order gets matched
-	 */
 	/**
 	 * Get this Instrument's last traded price
 	 * @return last price of this instrument
@@ -140,15 +178,14 @@ public class Instrument {
 	 * @param price a non-negative price 
 	 * @exception IllegalArgumentException if the passed argument is negative
 	 */
-	protected void setLastPrice(double price){
+	protected void updateLastPrice(double price){
 		if(price <0) 
 			throw new IllegalArgumentException("Invalid price: " + price);
 		lastPrice = price;
 	}
 	
 	/**
-	 * Get this Instrument's bid volume. Bid volume is calculated by summing open quantities from orders 
-	 * that are queued in the bid order book.
+	 * Get this Instrument's bid volume. 
 	 * @return bid volume of <code>this</code> instrument
 	 */
 	protected long getBidVolume(){
@@ -160,8 +197,7 @@ public class Instrument {
 	}
 
 	/**
-	 * Get this Instrument's ask volume. Ask volume is calculated by summing open quantities from orders 
-	 * tjat are queued in the ask order book.
+	 * Get this Instrument's ask volume. 
 	 * @return ask volume of <code>this</code> instrument
 	 */
 	protected long getAskVolume(){
@@ -174,8 +210,6 @@ public class Instrument {
 	
 	/**
 	 * Get this Instrument's buy volume. 
-	 * Buy volume = filled orders' buy side total quantities + partially filled orders' buy side executed quantities
-	 * 
 	 * @return <code>this</code> Instrument's buy volume
 	 */
 	protected long getBuyVolume(){
@@ -189,7 +223,6 @@ public class Instrument {
 	
 	/**
 	 * Get this Instrument's sell volume. 
-	 * Sell volume = filled orders' sell side total quantities + partially filled orders' sell side executed quantities
 	 * @return <code>this</code> Instrument's sell volume
 	 */
 	protected long getSellVolume(){
@@ -201,65 +234,70 @@ public class Instrument {
 	}
 	
 	/**
-	 * Get this Instrument's average buy price
-	 * @return <code>this</code> Instrument's average buy price
+	 * Get this Instrument's average traded price
+	 * @return <code>this</code> Instrument's bid volume weighted average price
 	 */
-	protected double getAverageBuyPrice(){
-		long orders = 0;
-		double averageOrderPrice = 0.0;
+	protected double getAveragePrice(){
+		return averagePrice;
+	}
+	
+	//Uses BigDecimal to do correct rounding of doubles. Currently rounds to 4 decimal places using HALF_UP mode
+	protected void updateAveragePrice(long quantity, double price){
+		total_QuantityTimesPrice += quantity*price;
+		total_Quantity += quantity;
 		
-		for(Order order: filledOrders){
-			if(order.side() == core.Order.Side.BUY){
-				averageOrderPrice += order.getAverageExecutedPrice();
-				orders++;
-			}
-		}
-		
-		for(Order order: partiallyFilledOrders){
-			if(order.side() == core.Order.Side.BUY){
-				averageOrderPrice += order.getAverageExecutedPrice();
-				orders++;
-			}
-		}
-		return averageOrderPrice/(double)orders;
+		averagePrice = (new BigDecimal(total_QuantityTimesPrice/total_Quantity)).setScale(4, 
+			RoundingMode.HALF_UP).doubleValue();
 	}
 	
 	/**
-	 * Get this Instrument's average sell price
-	 * @return <code>this</code> Instrument's average sell price
+	 * Get this Instrument's average price, initiated by a buy order
+	 * @return <code>this</code> Instrument's bid volume weighted average price
+	 */
+	protected double getAverageBuyPrice(){
+		return averageBuyPrice;
+	}
+	
+	protected void updateAverageBuyPrice(long quantity, double price){
+		total_BoughtQuantityTimesPrice += quantity*price;
+		total_BoughtQuantity += quantity;
+		
+		averageBuyPrice = (new BigDecimal(total_BoughtQuantityTimesPrice/total_BoughtQuantity)).setScale(4, 
+			RoundingMode.HALF_UP).doubleValue();
+		
+	}
+	
+	/**
+	 * Get this Instrument's average price, initiated by a sell order
+	 * @return <code>this</code> Instrument's bid volume weighted average price
 	 */
 	protected double getAverageSellPrice(){
-		long orders = 0;
-		double averageOrderPrice = 0.0;
-		
-		for(Order order: filledOrders){
-			if(order.side() == core.Order.Side.SELL){
-				averageOrderPrice += order.getAverageExecutedPrice();
-				orders++;
-			}
-		}
-		for(Order order: partiallyFilledOrders){
-			if(order.side() == core.Order.Side.SELL){
-				averageOrderPrice += order.getAverageExecutedPrice();
-				orders++;
-			}
-		}
-		
-		return averageOrderPrice/(double)orders;
+		return averageSellPrice;
 	}
+	
+	protected void updateAverageSellPrice(long quantity, double price){
+		total_SoldQuantityTimesPrice += quantity*price;
+		total_SoldQuantity += quantity;
+		
+		averageSellPrice = (new BigDecimal(total_SoldQuantityTimesPrice/total_SoldQuantity)).setScale(4, 
+				RoundingMode.HALF_UP).doubleValue();
+	}
+	
 	
 	/**
 	 * Get this Instrument's bid volume weighted average price (VWAP)
 	 * @return <code>this</code> Instrument's bid volume weighted average price
 	 */
 	protected double getBidVWAP(){
-		long volume = 0;
-		double price = 0.0;
-		for(Order order: bidLimitOrders){
-			volume += order.getQuantity();
-			price += order.getPrice()*order.getQuantity();
-		}
-		return price/(double)volume;
+		return bidVWAP;
+	}
+	
+	protected void updateBidVWAP(long quantity, double price){
+		
+		total_BidQuantityTimesPrice += quantity*price;
+		if(price != 0.0)
+			total_BidQuantity += quantity;
+		bidVWAP = (new BigDecimal(total_BidQuantityTimesPrice/total_BidQuantity)).setScale(4, RoundingMode.HALF_UP).doubleValue();
 	}
 	
 	/**
@@ -267,13 +305,14 @@ public class Instrument {
 	 * @return <code>this</code> Instrument's ask volume weighted average price
 	 */
 	protected double getAskVWAP(){
-		long volume = 0;
-		double price = 0.0;
-		for(Order order: askLimitOrders){
-			volume += order.getQuantity();
-			price += order.getPrice()*order.getQuantity();
-		}
-		return price/(double)volume;
+		return askVWAP;
+	}
+	
+	protected void updateAskVWAP(long quantity, double price){
+		total_AskQuantityTimesPrice += quantity*price;
+		if(price != 0.0)
+			total_AskQuantity += quantity;
+		askVWAP = (new BigDecimal(total_AskQuantityTimesPrice/total_AskQuantity)).setScale(4, RoundingMode.HALF_UP).doubleValue();
 	}
 	
 	/**

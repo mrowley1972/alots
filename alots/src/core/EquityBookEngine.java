@@ -62,57 +62,46 @@ public class EquityBookEngine implements BookEngine {
 	}
 	
 	public void processNewOrder(Order order) {
-		//try to match new order straight away
-		matchOrder(order);
 		
-		if(order.isFilled()){
-			if(order.side() == core.Order.Side.BUY)
-				addToFilledOrders(order);
-
-			if(order.side() == core.Order.Side.SELL)
-				addToFilledOrders(order);
-		}
-		//put the order into the book if it has not been closed
-		if(!order.isClosed())
-			insertOrder(order);
+		if(order.side() == core.Order.Side.BUY){
+			if(order.type() == core.Order.Type.MARKET && askLimitOrders.size()>0)
+				order.setPrice(askLimitOrders.get(0).getPrice());
 			
-		//Partially filled orders need to be traversed, and filled orders from previous matching of opposing orders
-		//should be removed and put into fully filled orders
+			order.getInstrument().updateBidVWAP(order.getQuantity(), order.getPrice());
+			matchBuyOrder(order);
+			
+			if(order.isFilled())
+				addToFilledOrders(order);
+			else
+				insertBuyOrder(order);
+		}
+		else{
+			if(order.type() == core.Order.Type.MARKET && bidLimitOrders.size()>0)
+				order.setPrice(bidLimitOrders.get(0).getPrice());
+			
+			order.getInstrument().updateAskVWAP(order.getQuantity(), order.getPrice());
+			matchSellOrder(order);
+			
+			if(order.isFilled())
+				addToFilledOrders(order);
+			else
+				insertSellOrder(order);
+		}
+			
+		//Remove filled orders from partially filled orders, and add them to filled orders
 		cleanUpPartiallyFilledOrders();
 	}
-	
-	
-	/*
-	 * Add the order, then sort books according to specified priority rules comparator.
-	 * Uses mergesort with nlog(n) performance and stability.
-	 */
-	
-	public void insertOrder(Order order){
-			
-		if(order.side() == core.Order.Side.BUY){
-				bidLimitOrders.add(order);
-				order.getInstrument().updateBidVolume(order.getOpenQuantity());
 
-				Collections.sort(bidLimitOrders, comparator);
-			}
-		
-		if(order.side() == core.Order.Side.SELL){
-				askLimitOrders.add(order);
-				order.getInstrument().updateAskVolume(order.getOpenQuantity());
-				
-				Collections.sort(askLimitOrders, comparator);
-		}
+	public void insertBuyOrder(Order order){
+		bidLimitOrders.add(order);
+		order.getInstrument().updateBidVolume(order.getOpenQuantity());
+		Collections.sort(bidLimitOrders, comparator);
 	}
 	
-	private void matchOrder(Order order) {
-		//deal with market order price discovery here, so that the actual matching already deals with correct price
-		
-		if(order.side() == core.Order.Side.BUY){	
-			matchBuyOrder(order);
-		}
-		if(order.side() == core.Order.Side.SELL){
-			matchSellOrder(order);
-		}
+	public void insertSellOrder(Order order){
+		askLimitOrders.add(order);
+		order.getInstrument().updateAskVolume(order.getOpenQuantity());
+		Collections.sort(askLimitOrders, comparator);
 	}
 	
 	private synchronized void matchSellOrder(Order order){
@@ -145,11 +134,11 @@ public class EquityBookEngine implements BookEngine {
 					order.execute(quantity, price);
 					
 					//update instrument statistics
-					instrument.setLastPrice(price);
+					instrument.updateLastPrice(price);
 					instrument.updateBidVolume(-quantity);
 					instrument.updateSellVolume(quantity);
-					instrument.updateBuyVolume(quantity);
-					
+					instrument.updateAveragePrice(quantity, price);
+					instrument.updateAverageSellPrice(quantity, price);
 								
 					//put orders into partially executed orders
 					addToPartiallyFilledOrders(order); 
@@ -158,8 +147,6 @@ public class EquityBookEngine implements BookEngine {
 					updatedOrders.add(order); updatedOrders.add(curOrder);
 				
 				}
-				
-				//TODO: TEst out
 				else{
 					break;
 				}
@@ -173,6 +160,7 @@ public class EquityBookEngine implements BookEngine {
 		//the order to be matched is a buy order
 		//start iterating orders in ask order book if there any orders outstanding
 		Instrument instrument = order.getInstrument();
+		
 		if(askLimitOrders.size()>0){
 			for(Order curOrder: askLimitOrders){
 				double price = curOrder.getPrice();
@@ -195,10 +183,11 @@ public class EquityBookEngine implements BookEngine {
 					order.execute(quantity, price);
 					
 					//update instrument history
-					instrument.setLastPrice(price);
+					instrument.updateLastPrice(price);
 					instrument.updateAskVolume(-quantity);
 					instrument.updateBuyVolume(quantity);
-					instrument.updateSellVolume(quantity);
+					instrument.updateAveragePrice(quantity, price);
+					instrument.updateAverageBuyPrice(quantity, price);
 					
 					//put the buy order into partially executed orders
 					addToPartiallyFilledOrders(order);
@@ -222,8 +211,7 @@ public class EquityBookEngine implements BookEngine {
 				iter.remove();
 		}
 	}
-	//add to partiallyFilledOrders by removing an object with the same reference
-	//and then adding the same element, but with updated internal state
+	
 	private void addToPartiallyFilledOrders(Order order){
 		
 		if(partiallyFilledOrders.contains(order)){
@@ -240,14 +228,6 @@ public class EquityBookEngine implements BookEngine {
 			}
 	}
 	
-	//add to filled orders by removing an object with the same reference
-	//and adding the same object, but with updated internal state
-	private void addToFilledOrders(Order order){
-		if(!filledOrders.contains(order))
-			filledOrders.add(order);
-	}
-	
-	
 	//clean up partiallyFilledOrders by eliminating already filled orders, and moving
 	//them into filledOrders
 	private void cleanUpPartiallyFilledOrders(){
@@ -259,5 +239,12 @@ public class EquityBookEngine implements BookEngine {
 				filledOrders.add(o);
 			}
 		}
+	}
+	
+	//add to filled orders by removing an object with the same reference
+	//and adding the same object, but with updated internal state
+	private void addToFilledOrders(Order order){
+		if(!filledOrders.contains(order))
+			filledOrders.add(order);
 	}
 }

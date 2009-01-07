@@ -32,12 +32,21 @@ public interface BookEngine {
 	
 	
 	/**
-	 * Insert a valid order into one of the order books. This method should be directly used by the 
+	 * Insert a valid buy order into one of the order books. This method should be directly used by the 
 	 * <code>processNewOrder(Order o)</code> method during processing of the order. The method should also be used 
 	 * when books need to be populated manually during backfills. During the insertion process, a sorting 
 	 * algorithm depending on the priority must be used to ensure correct order positioning during matching.
 	 * @param order an <code>Order</code> object checked against validity in the calling method or class
 	 */
-	void insertOrder(Order o);
+	void insertBuyOrder(Order o);
+	
+	/**
+	 * Insert a valid sell order into one of the order books. This method should be directly used by the 
+	 * <code>processNewOrder(Order o)</code> method during processing of the order. The method should also be used 
+	 * when books need to be populated manually during backfills. During the insertion process, a sorting 
+	 * algorithm depending on the priority must be used to ensure correct order positioning during matching.
+	 * @param order an <code>Order</code> object checked against validity in the calling method or class
+	 */
+	void insertSellOrder(Order o);
 	
 }

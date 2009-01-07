@@ -31,11 +31,11 @@ public class InstrumentTest {
 		bOrder3 = new Order(3, instrument, core.Order.Side.BUY, core.Order.Type.LIMIT, 6000, 24.0610);
 		bOrder4 = new Order(1, instrument, core.Order.Side.BUY, core.Order.Type.LIMIT, 1100, 24.0550);
 		bOrder5 = new Order(3, instrument, core.Order.Side.BUY, core.Order.Type.LIMIT, 100, 24.0600);
-		instrument.insertOrder(bOrder);
-		instrument.insertOrder(bOrder2);
-		instrument.insertOrder(bOrder3);
-		instrument.insertOrder(bOrder4);
-		instrument.insertOrder(bOrder5);
+		instrument.insertBuyOrder(bOrder);
+		instrument.insertBuyOrder(bOrder2);
+		instrument.insertBuyOrder(bOrder3);
+		instrument.insertBuyOrder(bOrder4);
+		instrument.insertBuyOrder(bOrder5);
 	}
 	
 	@Test (dependsOnMethods = {"insertBuyOrders"})
@@ -56,11 +56,11 @@ public class InstrumentTest {
 		sOrder3 = new Order(2, instrument, core.Order.Side.SELL, core.Order.Type.LIMIT, 500, 24.0700);
 		sOrder4 = new Order(1, instrument, core.Order.Side.SELL, core.Order.Type.LIMIT, 500, 24.0690);
 		sOrder5 = new Order(3, instrument, core.Order.Side.SELL, core.Order.Type.LIMIT, 500, 24.0690);
-		instrument.insertOrder(sOrder);
-		instrument.insertOrder(sOrder2);
-		instrument.insertOrder(sOrder3);
-		instrument.insertOrder(sOrder4);
-		instrument.insertOrder(sOrder5);
+		instrument.insertSellOrder(sOrder);
+		instrument.insertSellOrder(sOrder2);
+		instrument.insertSellOrder(sOrder3);
+		instrument.insertSellOrder(sOrder4);
+		instrument.insertSellOrder(sOrder5);
 		
 	}
 	
@@ -128,8 +128,9 @@ public class InstrumentTest {
 	public void verifyBookVolumes(){
 		Assert.assertEquals(instrument.getBidVolume(), 13119);
 		Assert.assertEquals(instrument.getAskVolume(), 100);
-		Assert.assertEquals(instrument.getBuyVolume(), 4281);
-		Assert.assertEquals(instrument.getSellVolume(), 4281);
+		
+		Assert.assertEquals(instrument.getBuyVolume(), 3681);
+		Assert.assertEquals(instrument.getSellVolume(), 600);
 	}
 	
 	@Test(dependsOnMethods = {"verifyStateOfBooksAfterSellLimitOrders"})
@@ -169,6 +170,14 @@ public class InstrumentTest {
 			order.printTrades();
 		}
 		System.out.println("Instrument's last traded price: " + instrument.getLastPrice());
+		System.out.println("Instrument's average price per share: " + instrument.getAveragePrice());
+		System.out.println("Instrument's sell volume: " + instrument.getSellVolume());
+		System.out.println("Instrument's buy volume: " + instrument.getBuyVolume());
+		System.out.println("Instrument's average buy price: " + instrument.getAverageBuyPrice());
+		System.out.println("Instrument's average sell price " + instrument.getAverageSellPrice());
+		System.out.println("Instrument's bid VWAP " + instrument.getBidVWAP());
+		System.out.println("Instrument's ask VWAP " + instrument.getAskVWAP());
+		
 		System.out.println();
 	}
 }
