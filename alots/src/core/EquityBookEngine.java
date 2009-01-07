@@ -63,11 +63,16 @@ public class EquityBookEngine implements BookEngine {
 	
 	public void processNewOrder(Order order) {
 		
+		Instrument instrument = order.getInstrument();
+		
 		if(order.side() == core.Order.Side.BUY){
 			if(order.type() == core.Order.Type.MARKET && askLimitOrders.size()>0)
 				order.setPrice(askLimitOrders.get(0).getPrice());
+			//Update instrument statistics
+			instrument.updateBidVWAP(order.getQuantity(), order.getPrice());
+			instrument.updateBestBid(order.getPrice());
 			
-			order.getInstrument().updateBidVWAP(order.getQuantity(), order.getPrice());
+			//Try to match immediately
 			matchBuyOrder(order);
 			
 			if(order.isFilled())
@@ -78,8 +83,11 @@ public class EquityBookEngine implements BookEngine {
 		else{
 			if(order.type() == core.Order.Type.MARKET && bidLimitOrders.size()>0)
 				order.setPrice(bidLimitOrders.get(0).getPrice());
+			//Update instrument statistics
+			instrument.updateAskVWAP(order.getQuantity(), order.getPrice());
+			instrument.updateBestAsk(order.getPrice());
 			
-			order.getInstrument().updateAskVWAP(order.getQuantity(), order.getPrice());
+			//Try to match immediately
 			matchSellOrder(order);
 			
 			if(order.isFilled())

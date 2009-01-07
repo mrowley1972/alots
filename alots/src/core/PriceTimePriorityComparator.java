@@ -4,8 +4,6 @@ import java.util.*;
 public class PriceTimePriorityComparator implements Comparator<Order> {
 
 	public int compare(Order order1, Order order2){
-		//Order order1 = (Order)o1;
-		//Order order2 = (Order)o2;
 		
 		//For a buy order, the highest price at the top position
 		if(order1.side() == core.Order.Side.BUY)

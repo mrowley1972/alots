@@ -46,6 +46,8 @@ public class Instrument {
 	private double averagePrice;
 	private double bidVWAP;
 	private double askVWAP;
+	private double bestBid;
+	private double bestAsk;
 	
 	//Helper variables to calculate various average statistics
 	private double total_QuantityTimesPrice;
@@ -75,11 +77,10 @@ public class Instrument {
 		partiallyFilledOrders = new Vector<Order>();
 		bookEngine = new EquityBookEngine(bidLimitOrders, askLimitOrders, filledOrders, partiallyFilledOrders, updatedOrders);
 		
-		bidVolume = 0;
-		askVolume = 0;
-		buyVolume = 0;
-		sellVolume = 0;
-		averagePrice = 0.0;
+		bidVolume = askVolume = buyVolume = sellVolume = 0;
+		averagePrice = averageSellPrice = averageBuyPrice = 0.0;
+		bidVWAP = askVWAP = 0.0;
+		bestBid = bestAsk = 0.0;
 		
 		//Initialise helper variables
 		total_QuantityTimesPrice = 0.0;
@@ -313,6 +314,40 @@ public class Instrument {
 		if(price != 0.0)
 			total_AskQuantity += quantity;
 		askVWAP = (new BigDecimal(total_AskQuantityTimesPrice/total_AskQuantity)).setScale(4, RoundingMode.HALF_UP).doubleValue();
+	}
+	
+	/*
+	 * Get a volume at a specified price
+	 */
+	protected long getVolumeAtPrice(double price){
+		return 0;
+	}
+	
+	/*
+	 * Get the best bid price.
+	 * 
+	 */
+	protected double getBestBid(){
+		return bestBid;
+	}
+	
+	protected void updateBestBid(double price){
+		if(price > bestBid)
+			bestBid = price;
+	}
+	
+	/*
+	 * Get the best ask price
+	 */
+	protected double getBestAsk(){
+		return bestAsk;
+	}
+	
+	protected void updateBestAsk(double price){
+		if(bestAsk == 0)
+			bestAsk = price;
+		if(price < bestAsk)
+			bestAsk = price;
 	}
 	
 	/**
