@@ -170,13 +170,21 @@ public class InstrumentTest {
 			order.printTrades();
 		}
 		System.out.println("Instrument's last traded price: " + instrument.getLastPrice());
+		Assert.assertEquals(instrument.getLastPrice(), 24.063);
 		System.out.println("Instrument's average price per share: " + instrument.getAveragePrice());
 		System.out.println("Instrument's sell volume: " + instrument.getSellVolume());
 		System.out.println("Instrument's buy volume: " + instrument.getBuyVolume());
 		System.out.println("Instrument's average buy price: " + instrument.getAverageBuyPrice());
 		System.out.println("Instrument's average sell price " + instrument.getAverageSellPrice());
 		System.out.println("Instrument's bid VWAP " + instrument.getBidVWAP());
+		Assert.assertEquals(instrument.getBidVWAP(), 24.0789);
 		System.out.println("Instrument's ask VWAP " + instrument.getAskVWAP());
+		Assert.assertEquals(instrument.getAskVWAP(), 24.1843);
+		System.out.println("Instrument's best bid " + instrument.getBestBid());
+		Assert.assertEquals(instrument.getBestBid(), 24.10);
+		System.out.println("Instrument's best ask " + instrument.getBestAsk());
+		Assert.assertEquals(instrument.getBestAsk(), 24.04);
+		
 		
 		System.out.println();
 	}

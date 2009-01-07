@@ -135,6 +135,22 @@ public interface IExchangeSimulator extends Remote {
 	double getInstrumentAskVWAP(String tickerSymbol) throws RemoteException;
 	
 	/**
+	 * Get instrument's best bid price
+	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @return instrument's best bid price
+	 * @exception IllegalArgumentException if invalid ticker symbol is passed
+	 */
+	public double getInstrumentBestBid(String tickerSymbol) throws RemoteException;
+	
+	/**
+	 * Get instrument's best ask price
+	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @return instrument's best ask price
+	 * @exception IllegalArgumentException if invalid ticker symbol is passed
+	 */
+	public double getInstrumentBestAsk(String tickerSymbol) throws RemoteException;
+	
+	/**
 	 * Get a list of currently traded instruments.
 	 * @return a list of currently traded instruments, <code>null</code> if there are no instruments being traded.
 	 */

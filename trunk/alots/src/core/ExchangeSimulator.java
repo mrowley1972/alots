@@ -150,6 +150,19 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		//return of a unique orderID indicates a confirmation that an order has been submitted.
 		return order.getOrderID();
 	}
+	
+
+	private void processOrder(Order order){
+		//add the order to the processing queue
+		try{
+			orders.put(order);
+		}
+		catch(InterruptedException e){
+			System.out.println("ORDER QUEUE EXCEPTION: " + e.getMessage());
+			e.printStackTrace();
+		}
+	}
+
 	/*
 	 * An order can only be cancelled if clientID matches the order's clientID
 	 * Client needs to supply an ID of the order that needs to be cancelled
@@ -358,17 +371,32 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		return instrument.getAskVWAP();
 	}
 	
-	private void processOrder(Order order){
-		//add the order to the processing queue
-		try{
-			orders.put(order);
-		}
-		catch(InterruptedException e){
-			System.out.println("ORDER QUEUE EXCEPTION: " + e.getMessage());
-			e.printStackTrace();
-		}
+	/**
+	 * Get instrument's best bid price
+	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @return instrument's best bid price
+	 * @exception IllegalArgumentException if invalid ticker symbol is passed
+	 */
+	public double getInstrumentBestBid(String tickerSymbol){
+		Instrument instrument = findInstrument(tickerSymbol);
+		if(instrument == null)
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+		return instrument.getBestBid();
 	}
-
+	
+	/**
+	 * Get instrument's best ask price
+	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @return instrument's best ask price
+	 * @exception IllegalArgumentException if invalid ticker symbol is passed
+	 */
+	public double getInstrumentBestAsk(String tickerSymbol){
+		Instrument instrument = findInstrument(tickerSymbol);
+		if(instrument == null)
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+		return instrument.getBestAsk();
+	}
+	
 	/**
 	 * Get a list of currently traded instruments.
 	 * @return a list of currently traded instruments, <code>null</code> if there are no instruments being traded.
