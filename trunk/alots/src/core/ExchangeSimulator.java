@@ -29,7 +29,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import common.IExchangeSimulator;
 import common.IOrder;
 
-public class ExchangeSimulator implements IExchangeSimulator {
+public class ExchangeSimulator implements IExchangeSimulator{
 
 	private AbstractMap<Integer, ClientOrders> clientOrdersDB;
 	private AbstractMap<String, Instrument> instruments;
@@ -291,11 +291,26 @@ public class ExchangeSimulator implements IExchangeSimulator {
 	}
 	
 	/**
-	 * Get instrument's average buy price
+	 * Get instrument's average price per share
 	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
 	 * @return instrument's average buy price
 	 * @exception IllegalArgumentException if invalid ticker symbol is passed
 	 */
+	
+	public double getInstrumentAveragePrice(String tickerSymbol){
+		Instrument instrument = findInstrument(tickerSymbol);
+		if(instrument == null)
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+		return instrument.getAveragePrice();
+	}
+	
+	/**
+	 * Get instrument's average buy price per share
+	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @return instrument's average sell price
+	 * @exception IllegalArgumentException if invalid ticker symbol is passed
+	 */
+	
 	public double getInstrumentAverageBuyPrice(String tickerSymbol){
 		Instrument instrument = findInstrument(tickerSymbol);
 		if(instrument == null)
@@ -304,11 +319,12 @@ public class ExchangeSimulator implements IExchangeSimulator {
 	}
 	
 	/**
-	 * Get instrument's average sell price
+	 * Get instrument's average sell price per share
 	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
 	 * @return instrument's average sell price
 	 * @exception IllegalArgumentException if invalid ticker symbol is passed
 	 */
+	
 	public double getInstrumentAverageSellPrice(String tickerSymbol){
 		Instrument instrument = findInstrument(tickerSymbol);
 		if(instrument == null)
@@ -389,6 +405,7 @@ public class ExchangeSimulator implements IExchangeSimulator {
 		return instrument;
 	}
 	
+	/*
 	public static void main(String args[]){
 		if(System.getSecurityManager() == null){
 			System.setSecurityManager(new RMISecurityManager());
@@ -409,4 +426,5 @@ public class ExchangeSimulator implements IExchangeSimulator {
 			e.printStackTrace();
 		}
 	}
+	*/
 }

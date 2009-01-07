@@ -7,28 +7,28 @@ import common.IOrder;
 
 public class ExchangeSimulatorTest {
 
-	ExchangeSimulator stockExchange;
+	ExchangeSimulator exchange;
 	
 	@BeforeClass
 	public void setUp(){
-		stockExchange = new ExchangeSimulator();
+		exchange = new ExchangeSimulator();
 	}
 	
 	@Test
 	public void verifyClientIDGeneration(){
-		int clientID1 = stockExchange.generateClientID();
-		int clientID2 = stockExchange.generateClientID();
+		int clientID1 = exchange.generateClientID();
+		int clientID2 = exchange.generateClientID();
 		Assert.assertEquals(clientID1, 1);
 		Assert.assertEquals(clientID2, 2);	
 	}
 	
 	@Test
 	public void verifyNotStarted(){
-		Assert.assertFalse(stockExchange.isOpen());
+		Assert.assertFalse(exchange.isOpen());
 	}
 	
 	private void addInstrument(String instrument){
-		stockExchange.registerInstrument(instrument);
+		exchange.registerInstrument(instrument);
 	}
 	private void printOrderBook(List<Order> book){
 		for(Order order: book){
@@ -47,49 +47,52 @@ public class ExchangeSimulatorTest {
 	
 	@Test(dependsOnMethods = {"verifyNotStarted"})
 	public void verifyAdditionOfInstruments(){
-		stockExchange.start();
-		Assert.assertTrue(stockExchange.isOpen());
+		exchange.start();
+		Assert.assertTrue(exchange.isOpen());
 		addInstrument("MSFT");
 		addInstrument("GOOG");
-		Assert.assertEquals(stockExchange.getTradedInstrumentsList().size(), 2);
+		Assert.assertEquals(exchange.getTradedInstrumentsList().size(), 2);
 	}
 	
 	//As soon as orders are created, they are executed in the order they are picked up from the queue by a thread
 	@Test(dependsOnMethods = {"verifyAdditionOfInstruments"})
 	public void verifyAdditionOfOrders(){
-		stockExchange.submitOrder("MSFT", 1, "Buy", "Limit", 24.43, 1000);
-		stockExchange.submitOrder("MSFT", 2, "Buy", "Market", 0.0, 500);
-		stockExchange.submitOrder("MSFT", 2, "Sell", "Market", 0.0, 500);
-		stockExchange.submitOrder("MSFT", 2, "Sell", "Market", 0.0, 500);
+		exchange.submitOrder("MSFT", 1, "Buy", "Limit", 24.43, 1000);
+		exchange.submitOrder("MSFT", 2, "Buy", "Market", 0.0, 500);
+		exchange.submitOrder("MSFT", 2, "Sell", "Market", 0.0, 500);
+		exchange.submitOrder("MSFT", 2, "Sell", "Market", 0.0, 500);
 		
 		try{
+			
 			Thread.sleep(2000);
 			System.out.println("*** BID BOOK ***");
-			printIOrderBook(stockExchange.getInstrumentBidBook("MSFT"));
-			Assert.assertEquals(stockExchange.getInstrumentBidBook("MSFT").size(), 1);
+			printIOrderBook(exchange.getInstrumentBidBook("MSFT"));
+			Assert.assertEquals(exchange.getInstrumentBidBook("MSFT").size(), 1);
 			
 			System.out.println("*** ASK BOOK ***");
-			printIOrderBook(stockExchange.getInstrumentAskBook("MSFT"));
-			Assert.assertEquals(stockExchange.getInstrumentAskBook("MSFT").size(), 0);
+			printIOrderBook(exchange.getInstrumentAskBook("MSFT"));
+			Assert.assertEquals(exchange.getInstrumentAskBook("MSFT").size(), 0);
 			
 			System.out.println("*** FILLED ORDERS ***");
-			printOrderBook(stockExchange.getInstrument("MSFT").getFilledOrders());
-			Assert.assertEquals(stockExchange.getInstrument("MSFT").getFilledOrders().size(), 3);
+			printOrderBook(exchange.getInstrument("MSFT").getFilledOrders());
+			Assert.assertEquals(exchange.getInstrument("MSFT").getFilledOrders().size(), 3);
 			
 			System.out.println("*** PARTIALLY FILLED ORDERS ***");
-			printOrderBook(stockExchange.getInstrument("MSFT").getPartiallyFilledOrders());
-			Assert.assertEquals(stockExchange.getInstrument("MSFT").getPartiallyFilledOrders().size(), 0);
+			printOrderBook(exchange.getInstrument("MSFT").getPartiallyFilledOrders());
+			Assert.assertEquals(exchange.getInstrument("MSFT").getPartiallyFilledOrders().size(), 0);
 			System.out.println();
 			
-			Assert.assertEquals(stockExchange.getInstrumentBidVolume("MSFT"), 500);
-			Assert.assertEquals(stockExchange.getInstrumentAskVolume("MSFT"), 0);
-			Assert.assertEquals(stockExchange.getInstrumentBuyVolume("MSFT"), 1000);
-			Assert.assertEquals(stockExchange.getInstrumentSellVolume("MSFT"), 1000);
-			Assert.assertEquals(stockExchange.getInstrumentLastPrice("MSFT"), 24.43);
+			Assert.assertEquals(exchange.getInstrumentBidVolume("MSFT"), 500);
+			Assert.assertEquals(exchange.getInstrumentAskVolume("MSFT"), 0);
+			Assert.assertEquals(exchange.getInstrumentBuyVolume("MSFT"), 0);
+			Assert.assertEquals(exchange.getInstrumentSellVolume("MSFT"), 1000);
+			Assert.assertEquals(exchange.getInstrumentAskVWAP("MSFT"), 24.43);
+			Assert.assertEquals(exchange.getInstrumentBidVWAP("MSFT"), 24.43);
+			Assert.assertEquals(exchange.getInstrumentLastPrice("MSFT"), 24.43);
 			
-			stockExchange.cancelOrder(2, 10001);
+			exchange.cancelOrder(2, 10001);
 			Thread.sleep(100);
-			Assert.assertEquals(stockExchange.getInstrumentBidBook("MSFT").size(), 0);
+			Assert.assertEquals(exchange.getInstrumentBidBook("MSFT").size(), 0);
 			
 		}
 		catch(InterruptedException e){
