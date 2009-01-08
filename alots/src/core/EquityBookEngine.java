@@ -112,23 +112,16 @@ public class EquityBookEngine implements BookEngine {
 	}
 	
 	private synchronized void matchSellOrder(Order order){
-		//the order to be matched is a sell order,
-		//start iterating orders in bid order book if there are any orders outstanding
-		//only permit matching if there are orders outstanding in the bid limit book
 		if(bidLimitOrders.size() > 0){
-			
 			Instrument instrument = order.getInstrument();
-			for(Order curOrder: bidLimitOrders){
+			Iterator<Order> iter = bidLimitOrders.iterator();
 			
+			while(iter.hasNext()){
+				Order curOrder = iter.next();
 				double price = curOrder.getPrice();
-				//assign price to market order after each match
-				if(order.type() == core.Order.Type.MARKET && order.getOpenQuantity() > 0)
-					order.setPrice(price);
-			
-				//If the current price of buy order is greater
-				//than the price of sell order, then it is a best match
-				if(price >= order.getPrice() && order.getOpenQuantity() > 0){
 				
+				if(price >= order.getPrice() && order.getOpenQuantity() > 0){
+					
 					//calculate matched quantity
 					long quantity;
 					if(curOrder.getOpenQuantity() > order.getOpenQuantity())
@@ -140,16 +133,23 @@ public class EquityBookEngine implements BookEngine {
 					curOrder.execute(quantity, price);
 					order.execute(quantity, price);
 					
+					addToPartiallyFilledOrders(order);
+					
+					if(curOrder.isFilled()){
+						iter.remove();
+						addToFilledOrders(curOrder);
+					}
+					else{
+						addToPartiallyFilledOrders(curOrder);
+					}
+					
 					//update instrument statistics
 					instrument.updateLastPrice(price);
 					instrument.updateBidVolume(-quantity);
 					instrument.updateSellVolume(quantity);
 					instrument.updateAveragePrice(quantity, price);
 					instrument.updateAverageSellPrice(quantity, price);
-								
-					//put orders into partially executed orders
-					addToPartiallyFilledOrders(order); 
-					addToPartiallyFilledOrders(curOrder);
+					 
 					//put into pushing queue for client notifications of both orders
 					updatedOrders.add(order); updatedOrders.add(curOrder);
 				
@@ -157,21 +157,20 @@ public class EquityBookEngine implements BookEngine {
 				else{
 					break;
 				}
+				
 			}
 		}
-		//cannot remove while iterating through the book, hence need to do an extra pass and eliminate filled orders
-		cleanUpBook(bidLimitOrders);
 	}
 	
 	private synchronized void matchBuyOrder(Order order){
-		//the order to be matched is a buy order
-		//start iterating orders in ask order book if there any orders outstanding
-		Instrument instrument = order.getInstrument();
 		
 		if(askLimitOrders.size()>0){
-			for(Order curOrder: askLimitOrders){
+			Instrument instrument = order.getInstrument();
+			Iterator<Order> iter = askLimitOrders.iterator();
+			
+			while(iter.hasNext()){
+				Order curOrder = iter.next();
 				double price = curOrder.getPrice();
-				//assign price to a market order after each match
 				if(order.type() == core.Order.Type.MARKET && order.getOpenQuantity() > 0)
 					order.setPrice(price);
 				
@@ -189,6 +188,14 @@ public class EquityBookEngine implements BookEngine {
 					curOrder.execute(quantity, price);
 					order.execute(quantity, price);
 					
+					if(curOrder.isFilled()){
+						iter.remove();
+						addToFilledOrders(curOrder);
+					}else{
+						addToPartiallyFilledOrders(curOrder);
+					}
+					addToPartiallyFilledOrders(order);
+					
 					//update instrument history
 					instrument.updateLastPrice(price);
 					instrument.updateAskVolume(-quantity);
@@ -196,29 +203,15 @@ public class EquityBookEngine implements BookEngine {
 					instrument.updateAveragePrice(quantity, price);
 					instrument.updateAverageBuyPrice(quantity, price);
 					
-					//put the buy order into partially executed orders
-					addToPartiallyFilledOrders(order);
-					addToPartiallyFilledOrders(curOrder);
 					//put into pushing queue for client notifications of both orders
 					updatedOrders.add(order); updatedOrders.add(curOrder);
 				} else {
 					break;
-				}
+				}	
 			}
 		}
-		//cannot remove while iterating through the book, hence need to do an extra pass and eliminate filled orders
-		cleanUpBook(askLimitOrders);
 	}
-	
-	//deletes filled orders from a book
-	private void cleanUpBook(List<Order> book){
-		Iterator<Order> iter = book.iterator();
-		while(iter.hasNext()){
-			if(iter.next().isFilled())
-				iter.remove();
-		}
-	}
-	
+
 	private void addToPartiallyFilledOrders(Order order){
 		
 		if(partiallyFilledOrders.contains(order)){
@@ -243,7 +236,8 @@ public class EquityBookEngine implements BookEngine {
 			Order o = iter.next();
 			if(o.isFilled()){
 				iter.remove();
-				filledOrders.add(o);
+				//filledOrders.add(o);
+				addToFilledOrders(o);
 			}
 		}
 	}

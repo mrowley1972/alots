@@ -89,8 +89,8 @@ public class ExchangeSimulatorTest {
 			Assert.assertEquals(exchange.getInstrumentAskVWAP("MSFT"), 24.43);
 			Assert.assertEquals(exchange.getInstrumentBidVWAP("MSFT"), 24.43);
 			Assert.assertEquals(exchange.getInstrumentLastPrice("MSFT"), 24.43);
-			Assert.assertEquals(exchange.getInstrumentBestBid("MSFT"), 24.43);
-			Assert.assertEquals(exchange.getInstrumentBestAsk("MSFT"), 24.43);
+			Assert.assertEquals(exchange.getInstrumentBestBid("MSFT"), 0.0);
+			Assert.assertEquals(exchange.getInstrumentBestAsk("MSFT"), 0.0);
 			
 			exchange.cancelOrder(2, 10001);
 			Thread.sleep(100);
