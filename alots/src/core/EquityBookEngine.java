@@ -70,7 +70,7 @@ public class EquityBookEngine implements BookEngine {
 				order.setPrice(askLimitOrders.get(0).getPrice());
 			//Update instrument statistics
 			instrument.updateBidVWAP(order.getQuantity(), order.getPrice());
-			instrument.updateBestBid(order.getPrice());
+			
 			
 			//Try to match immediately
 			matchBuyOrder(order);
@@ -85,7 +85,6 @@ public class EquityBookEngine implements BookEngine {
 				order.setPrice(bidLimitOrders.get(0).getPrice());
 			//Update instrument statistics
 			instrument.updateAskVWAP(order.getQuantity(), order.getPrice());
-			instrument.updateBestAsk(order.getPrice());
 			
 			//Try to match immediately
 			matchSellOrder(order);

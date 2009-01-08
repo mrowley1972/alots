@@ -181,9 +181,16 @@ public class InstrumentTest {
 		System.out.println("Instrument's ask VWAP " + instrument.getAskVWAP());
 		Assert.assertEquals(instrument.getAskVWAP(), 24.1843);
 		System.out.println("Instrument's best bid " + instrument.getBestBid());
-		Assert.assertEquals(instrument.getBestBid(), 24.10);
+		Assert.assertEquals(instrument.getBestBid(), 24.063);
 		System.out.println("Instrument's best ask " + instrument.getBestAsk());
-		Assert.assertEquals(instrument.getBestAsk(), 24.04);
+		Assert.assertEquals(instrument.getBestAsk(), 25.02);
+		
+		Assert.assertEquals(instrument.getBidVolumeAtPrice(24.063), 419);
+		Assert.assertEquals(instrument.getBidVolumeAtPrice(24.06), 5100);
+		Assert.assertEquals(instrument.getBidVolumeAtPrice(25), 0);
+		
+		Assert.assertEquals(instrument.getAskVolumeAtPrice(25.02), 100);
+		Assert.assertEquals(instrument.getAskVolumeAtPrice(24), 0);
 		
 		
 		System.out.println();

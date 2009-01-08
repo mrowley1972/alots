@@ -317,37 +317,55 @@ public class Instrument {
 	}
 	
 	/*
-	 * Get a volume at a specified price
+	 * Get bid volume at a specified price
 	 */
-	protected long getVolumeAtPrice(double price){
-		return 0;
+	protected long getBidVolumeAtPrice(double price){
+		
+		long volume = 0;
+		//Will return zero immediately if there is no order at this price or the book is empty
+		for(Order order : bidLimitOrders){
+			if(order.getPrice() == price)
+				volume += order.getOpenQuantity();
+			if(order.getPrice() < price)
+				break;
+		}
+		
+		return volume;
 	}
 	
 	/*
-	 * Get the best bid price.
+	 * Get ask volume at a specified price
+	 */
+	protected long getAskVolumeAtPrice(double price){
+		long volume = 0;
+		//Returns zero immediately if there is no order at this price or the book is empty
+		for(Order order : askLimitOrders){
+			if(order.getPrice() == price)
+				volume += order.getOpenQuantity();
+			if(order.getPrice() > price)
+				break;
+		}
+		return volume;
+	}
+	/*
+	 * Get the best bid price from the book.
 	 * 
 	 */
 	protected double getBestBid(){
-		return bestBid;
-	}
-	
-	protected void updateBestBid(double price){
-		if(price > bestBid)
-			bestBid = price;
+		if(bidLimitOrders.size() >0)
+			return bidLimitOrders.get(0).getPrice();
+		//if the book is empty, returns zero
+		return 0.0;
 	}
 	
 	/*
-	 * Get the best ask price
+	 * Get the best ask price from the book
 	 */
 	protected double getBestAsk(){
-		return bestAsk;
-	}
-	
-	protected void updateBestAsk(double price){
-		if(bestAsk == 0)
-			bestAsk = price;
-		if(price < bestAsk)
-			bestAsk = price;
+		if(askLimitOrders.size()>0)
+			return askLimitOrders.get(0).getPrice();
+		//if the book is empty, returns zero
+		return 0.0;
 	}
 	
 	/**
