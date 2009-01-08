@@ -46,8 +46,8 @@ public class Instrument {
 	private double averagePrice;
 	private double bidVWAP;
 	private double askVWAP;
-	private double bestBid;
-	private double bestAsk;
+	//private double bestBid;
+	//private double bestAsk;
 	
 	//Helper variables to calculate various average statistics
 	private double total_QuantityTimesPrice;
@@ -80,7 +80,7 @@ public class Instrument {
 		bidVolume = askVolume = buyVolume = sellVolume = 0;
 		averagePrice = averageSellPrice = averageBuyPrice = 0.0;
 		bidVWAP = askVWAP = 0.0;
-		bestBid = bestAsk = 0.0;
+		//bestBid = bestAsk = 0.0;
 		
 		//Initialise helper variables
 		total_QuantityTimesPrice = 0.0;

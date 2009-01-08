@@ -1,7 +1,6 @@
 package core;
 
-import java.util.Collections;
-import java.util.Comparator;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.AbstractQueue;
@@ -12,7 +11,6 @@ public class EquityBookEngine implements BookEngine {
 	private List<Order> askLimitOrders;
 	private List<Order> filledOrders;
 	private List<Order> partiallyFilledOrders;
-	private Comparator<Order> comparator;
 	private AbstractQueue<Order> updatedOrders;
 	
 	/*
@@ -25,7 +23,6 @@ public class EquityBookEngine implements BookEngine {
 		this.askLimitOrders = askLimitOrders;
 		this.filledOrders = filledOrders;
 		this.partiallyFilledOrders = partiallyFilledOrders;
-		comparator = new PriceTimePriorityComparator();
 		this.updatedOrders = updatedOrders;
 	}
 	
@@ -70,8 +67,6 @@ public class EquityBookEngine implements BookEngine {
 				order.setPrice(askLimitOrders.get(0).getPrice());
 			//Update instrument statistics
 			instrument.updateBidVWAP(order.getQuantity(), order.getPrice());
-			
-			
 			//Try to match immediately
 			matchBuyOrder(order);
 			
@@ -85,7 +80,6 @@ public class EquityBookEngine implements BookEngine {
 				order.setPrice(bidLimitOrders.get(0).getPrice());
 			//Update instrument statistics
 			instrument.updateAskVWAP(order.getQuantity(), order.getPrice());
-			
 			//Try to match immediately
 			matchSellOrder(order);
 			
@@ -100,15 +94,43 @@ public class EquityBookEngine implements BookEngine {
 	}
 
 	public void insertBuyOrder(Order order){
-		bidLimitOrders.add(order);
 		order.getInstrument().updateBidVolume(order.getOpenQuantity());
-		Collections.sort(bidLimitOrders, comparator);
+		
+			int i;
+			double price = order.getPrice();
+			Date entryTime = order.getEntryTime();
+			
+			for(i=0; i<bidLimitOrders.size(); i++){
+				Order curOrder = bidLimitOrders.get(i);
+			
+				if((curOrder.getPrice() < price) || (curOrder.getPrice()==price && 
+						curOrder.getEntryTime().compareTo(entryTime)>0)){
+					bidLimitOrders.add(i, order);
+					break;
+				}
+			}
+			if(i == (bidLimitOrders.size()))
+				bidLimitOrders.add(order);
 	}
 	
 	public void insertSellOrder(Order order){
-		askLimitOrders.add(order);
 		order.getInstrument().updateAskVolume(order.getOpenQuantity());
-		Collections.sort(askLimitOrders, comparator);
+		
+		int i;
+		double price = order.getPrice();
+		Date entryTime = order.getEntryTime();
+		
+		for(i=0; i<askLimitOrders.size(); i++){
+			Order curOrder = askLimitOrders.get(i);
+		
+			if((curOrder.getPrice() > price) || (curOrder.getPrice()==price && 
+					curOrder.getEntryTime().compareTo(entryTime)>0)){
+				askLimitOrders.add(i, order);
+				break;
+			}
+		}
+		if(i == (askLimitOrders.size()))
+			askLimitOrders.add(order);
 	}
 	
 	private synchronized void matchSellOrder(Order order){
@@ -213,7 +235,7 @@ public class EquityBookEngine implements BookEngine {
 	}
 
 	private void addToPartiallyFilledOrders(Order order){
-		
+		/*
 		if(partiallyFilledOrders.contains(order)){
 			if(order.isFilled()){
 				partiallyFilledOrders.remove(order);
@@ -226,6 +248,21 @@ public class EquityBookEngine implements BookEngine {
 				else
 					addToFilledOrders(order);
 			}
+		*/
+		
+		//Let's try to reorganise conditions and it should be a bit faster
+		if(order.isFilled()){
+			if(partiallyFilledOrders.contains(order)){
+				partiallyFilledOrders.remove(order);
+				addToFilledOrders(order);
+			}
+		}
+		else{
+			if(!partiallyFilledOrders.contains(order)){
+				partiallyFilledOrders.add(order);
+			}
+		}
+		
 	}
 	
 	//clean up partiallyFilledOrders by eliminating already filled orders, and moving
