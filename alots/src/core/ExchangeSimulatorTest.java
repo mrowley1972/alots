@@ -9,6 +9,7 @@ public class ExchangeSimulatorTest {
 
 	ExchangeSimulator exchange;
 	
+	
 	@BeforeClass
 	public void setUp(){
 		exchange = new ExchangeSimulator();
@@ -24,6 +25,7 @@ public class ExchangeSimulatorTest {
 	
 	@Test
 	public void verifyNotStarted(){
+		
 		Assert.assertFalse(exchange.isOpen());
 	}
 	

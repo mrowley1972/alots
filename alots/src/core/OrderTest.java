@@ -1,8 +1,6 @@
 package core;
-import java.util.AbstractQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-
-import core.*;
 
 import org.testng.Assert;
 import org.testng.annotations.*;
@@ -10,7 +8,7 @@ import org.testng.annotations.*;
 public class OrderTest {
 	
 	Instrument instrument;
-	AbstractQueue<Order> queue = new LinkedBlockingQueue<Order>();
+	BlockingQueue<Order> queue = new LinkedBlockingQueue<Order>();
 	Order order;
 	
 	@BeforeClass
