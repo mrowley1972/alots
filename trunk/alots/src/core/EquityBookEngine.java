@@ -3,7 +3,7 @@ package core;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
-import java.util.AbstractQueue;
+import java.util.concurrent.BlockingQueue;
 
 public class EquityBookEngine implements BookEngine {
 
@@ -11,13 +11,13 @@ public class EquityBookEngine implements BookEngine {
 	private List<Order> askLimitOrders;
 	private List<Order> filledOrders;
 	private List<Order> partiallyFilledOrders;
-	private AbstractQueue<Order> updatedOrders;
+	private BlockingQueue<Order> updatedOrders;
 	
 	/*
 	 * When BookEngine object is created, it gets access to all Instrument books 
 	 */
 	public EquityBookEngine(List<Order> bidLimitOrders, List<Order> askLimitOrders, List<Order> filledOrders, 
-			List<Order> partiallyFilledOrders, AbstractQueue<Order> updatedOrders){
+			List<Order> partiallyFilledOrders, BlockingQueue<Order> updatedOrders){
 		
 		this.bidLimitOrders = bidLimitOrders;
 		this.askLimitOrders = askLimitOrders;

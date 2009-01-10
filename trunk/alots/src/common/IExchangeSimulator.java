@@ -9,6 +9,8 @@ import core.MarketsClosedException;
 
 public interface IExchangeSimulator extends Remote {
 	
+	int register(Notifiable client) throws RemoteException;
+	
 	/**
 	 * Check whether the exchange is open
 	 * @return true if the exchange is operating, false otherwise

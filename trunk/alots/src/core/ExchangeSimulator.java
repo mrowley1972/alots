@@ -18,7 +18,6 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.AbstractMap;
-import java.util.AbstractQueue;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -28,6 +27,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import common.IExchangeSimulator;
 import common.IOrder;
+import common.Notifiable;
 
 public class ExchangeSimulator implements IExchangeSimulator{
 
@@ -37,28 +37,48 @@ public class ExchangeSimulator implements IExchangeSimulator{
 	private BlockingQueue<Order> orders;
 	//holds all updated orders that have been either fully or partially processed
 	//these are pushed to subscribed clients
-	private AbstractQueue<Order> updatedOrders;
+	private BlockingQueue<Order> updatedOrders;
+	//holds all clients that have been registered to be notified of their orders
+	private AbstractMap<Integer, Notifiable> registeredClients;
 	//state of the stock exchange
 	private boolean started = false;
 	
+	//responsible for processing new orders from order's queue
 	private OrderProcessor orderProcessor;
+	//responsible for notifying clients about any updated orders that belong to them
+	private DataProcessor dataProcessor;
 	private Thread op;
+	private Thread dp;
 	private static int nextClientID = 0;
 	
 	/**
 	 * Creates a <code>StockExchange</code> with default implementation
 	 */
 	public ExchangeSimulator(){
+		//Initialise all containers
 		clientOrdersDB = new ConcurrentHashMap<Integer, ClientOrders>();
 		instruments = new ConcurrentHashMap<String, Instrument>();
 		orders = new LinkedBlockingQueue<Order>();
 		updatedOrders = new LinkedBlockingQueue<Order>();
+		registeredClients = new ConcurrentHashMap<Integer, Notifiable>();
+		
+		//Initialise all processors and make new threads
 		orderProcessor = new OrderProcessor(orders);
+		dataProcessor = new DataProcessor(registeredClients, updatedOrders);
 		op = new Thread(orderProcessor);
+		dp = new Thread(dataProcessor);
 	}
 	
 	protected int generateClientID(){
 		return ++ExchangeSimulator.nextClientID;
+	}
+	
+	//The first method that client must call to obtain correct clientID and be registered for notifications
+	public int register(Notifiable client){
+		//Generate unique clientID and record for future notifications
+		Integer clientID = generateClientID();
+		registeredClients.put(clientID, client);
+		return clientID.intValue();
 	}
 	
 	/**
@@ -68,6 +88,7 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		if(!started){
 			started = true;
 			op.start();
+			dp.start();
 		}
 	}
 	/**

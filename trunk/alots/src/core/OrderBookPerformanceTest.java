@@ -1,7 +1,7 @@
 package core;
 
-import java.util.AbstractQueue;
 import java.util.Random;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 
@@ -9,7 +9,7 @@ public class OrderBookPerformanceTest {
 
 	public static void main(String[] args) {
 
-		AbstractQueue<Order> queue = new LinkedBlockingQueue<Order>();
+		BlockingQueue<Order> queue = new LinkedBlockingQueue<Order>();
 		Instrument instrument = new Instrument("MSFT", queue);
 		
 		// simulation step

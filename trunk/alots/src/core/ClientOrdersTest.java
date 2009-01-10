@@ -1,5 +1,4 @@
 package core;
-import java.util.AbstractQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.testng.annotations.*;

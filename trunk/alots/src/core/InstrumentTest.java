@@ -1,5 +1,6 @@
 package core;
-import java.util.AbstractQueue;
+
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.testng.annotations.*;
@@ -10,7 +11,7 @@ import common.IOrder;
 public class InstrumentTest {
 
 	Instrument instrument;
-	AbstractQueue<Order> queue = new LinkedBlockingQueue<Order>();
+	BlockingQueue<Order> queue = new LinkedBlockingQueue<Order>();
 	Order bOrder, bOrder2, bOrder3, bOrder4, bOrder5;
 	Order sOrder, sOrder2, sOrder3, sOrder4, sOrder5;
 	

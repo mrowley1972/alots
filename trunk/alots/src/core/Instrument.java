@@ -12,9 +12,9 @@
 
 package core;
 
-import java.util.AbstractQueue;
 import java.util.List;
 import java.util.Vector;
+import java.util.concurrent.BlockingQueue;
 import java.math.*;
 
 import common.IOrder;
@@ -71,7 +71,7 @@ public class Instrument {
 	 * @param updatedOrders	an <code>queue</code> where all orders that have been updated are placed
 	 * @return a fully encapsulated <code>Instrument</code> object
 	 */
-	public Instrument(String tickerSymbol, AbstractQueue<Order> updatedOrders){
+	public Instrument(String tickerSymbol, BlockingQueue<Order> updatedOrders){
 		this.tickerSymbol = tickerSymbol.toUpperCase();
 		bidLimitOrders = new Vector<Order>();
 		askLimitOrders = new Vector<Order>();
