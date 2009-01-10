@@ -65,8 +65,12 @@ public class EquityBookEngine implements BookEngine {
 		if(order.side() == core.Order.Side.BUY){
 			if(order.type() == core.Order.Type.MARKET && askLimitOrders.size()>0)
 				order.setPrice(askLimitOrders.get(0).getPrice());
-			//Update instrument statistics
+			
+			//Update instrument's immediate statistics
 			instrument.updateBidVWAP(order.getQuantity(), order.getPrice());
+			instrument.updateBidHigh(order.getPrice());
+			instrument.updateBidLow(order.getPrice());
+			
 			//Try to match immediately
 			matchBuyOrder(order);
 			
@@ -78,8 +82,12 @@ public class EquityBookEngine implements BookEngine {
 		else{
 			if(order.type() == core.Order.Type.MARKET && bidLimitOrders.size()>0)
 				order.setPrice(bidLimitOrders.get(0).getPrice());
-			//Update instrument statistics
+			
+			//Update instrument's immediate statistics
 			instrument.updateAskVWAP(order.getQuantity(), order.getPrice());
+			instrument.updateAskHigh(order.getPrice());
+			instrument.updateAskLow(order.getPrice());
+			
 			//Try to match immediately
 			matchSellOrder(order);
 			
@@ -113,6 +121,7 @@ public class EquityBookEngine implements BookEngine {
 				bidLimitOrders.add(order);
 	}
 	
+	
 	public void insertSellOrder(Order order){
 		order.getInstrument().updateAskVolume(order.getOpenQuantity());
 		
@@ -132,6 +141,7 @@ public class EquityBookEngine implements BookEngine {
 		if(i == (askLimitOrders.size()))
 			askLimitOrders.add(order);
 	}
+	
 	
 	private synchronized void matchSellOrder(Order order){
 		if(bidLimitOrders.size() > 0){
@@ -235,22 +245,6 @@ public class EquityBookEngine implements BookEngine {
 	}
 
 	private void addToPartiallyFilledOrders(Order order){
-		/*
-		if(partiallyFilledOrders.contains(order)){
-			if(order.isFilled()){
-				partiallyFilledOrders.remove(order);
-				addToFilledOrders(order);
-			}
-		}
-		else{
-				if(!order.isFilled())
-					partiallyFilledOrders.add(order);
-				else
-					addToFilledOrders(order);
-			}
-		*/
-		
-		//Let's try to reorganise conditions and it should be a bit faster
 		if(order.isFilled()){
 			if(partiallyFilledOrders.contains(order)){
 				partiallyFilledOrders.remove(order);
@@ -265,6 +259,13 @@ public class EquityBookEngine implements BookEngine {
 		
 	}
 	
+	//add to filled orders by removing an object with the same reference
+	//and adding the same object, but with updated internal state
+	private void addToFilledOrders(Order order){
+		if(!filledOrders.contains(order))
+			filledOrders.add(order);
+	}
+	
 	//clean up partiallyFilledOrders by eliminating already filled orders, and moving
 	//them into filledOrders
 	private void cleanUpPartiallyFilledOrders(){
@@ -273,16 +274,8 @@ public class EquityBookEngine implements BookEngine {
 			Order o = iter.next();
 			if(o.isFilled()){
 				iter.remove();
-				//filledOrders.add(o);
 				addToFilledOrders(o);
 			}
 		}
-	}
-	
-	//add to filled orders by removing an object with the same reference
-	//and adding the same object, but with updated internal state
-	private void addToFilledOrders(Order order){
-		if(!filledOrders.contains(order))
-			filledOrders.add(order);
 	}
 }

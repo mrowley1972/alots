@@ -46,8 +46,10 @@ public class Instrument {
 	private double averagePrice;
 	private double bidVWAP;
 	private double askVWAP;
-	//private double bestBid;
-	//private double bestAsk;
+	private double bidHigh;
+	private double bidLow;
+	private double askHigh;
+	private double askLow;
 	
 	//Helper variables to calculate various average statistics
 	private double total_QuantityTimesPrice;
@@ -77,12 +79,13 @@ public class Instrument {
 		partiallyFilledOrders = new Vector<Order>();
 		bookEngine = new EquityBookEngine(bidLimitOrders, askLimitOrders, filledOrders, partiallyFilledOrders, updatedOrders);
 		
+		//Make sure all variables are initialized to zero from the beginning
 		bidVolume = askVolume = buyVolume = sellVolume = 0;
 		averagePrice = averageSellPrice = averageBuyPrice = 0.0;
 		bidVWAP = askVWAP = 0.0;
-		//bestBid = bestAsk = 0.0;
+		bidHigh = bidLow = askHigh = askLow = 0.0;
 		
-		//Initialise helper variables
+		//Initialise helper variables to zeroes
 		total_QuantityTimesPrice = 0.0;
 		total_Quantity = 0;
 		total_BoughtQuantityTimesPrice = 0.0;
@@ -352,20 +355,101 @@ public class Instrument {
 	 * 
 	 */
 	protected double getBestBid(){
-		if(bidLimitOrders.size() >0)
-			return bidLimitOrders.get(0).getPrice();
-		//if the book is empty, returns zero
-		return 0.0;
+		return getBestPrice(bidLimitOrders);
 	}
 	
 	/*
 	 * Get the best ask price from the book
 	 */
 	protected double getBestAsk(){
-		if(askLimitOrders.size()>0)
-			return askLimitOrders.get(0).getPrice();
+		return getBestPrice(askLimitOrders);
+	}
+	
+	/*
+	 * Get the best price from the book
+	 */
+	private double getBestPrice(List<Order> book){
+		if(book.size() > 0)
+			return book.get(0).getPrice();
 		//if the book is empty, returns zero
 		return 0.0;
+	}
+	
+	/*
+	 * Get a price at specific depth
+	 */
+	protected double getBidPriceAtDepth(int depth){
+		return getPriceAtDepth(depth, bidLimitOrders);
+	}
+	protected double getAskPriceAtDepth(int depth){
+		return getPriceAtDepth(depth, askLimitOrders);
+	}
+	
+	private double getPriceAtDepth(int depth, List<Order> book){
+		//a variable to hold a number of unique prices seen so far
+		int tracker = 0;
+		if(book.size()>0){
+			//depth zero refers to the best price in the book
+			if(depth == 0)
+				return book.get(0).getPrice();
+			//extract the very first price, first unique price seen so far
+			double price = book.get(0).getPrice();
+			tracker++;
+			
+			//price at depth d, is the unique price number d+1
+			for(Order order: book){
+				if(order.getPrice() != price){
+					tracker++;
+					price = order.getPrice();
+				}
+				if(tracker == (depth+1))
+					return order.getPrice();
+			}
+			
+			//return 0, if there is no price at this depth
+			if(tracker < depth+1)
+				return 0.0;
+		}
+		//return 0, is the book currently empty
+		return 0.0;
+	}
+	
+	protected double getBidHigh(){
+		return bidHigh;
+	}
+	protected void updateBidHigh(double price){
+		if(price > bidHigh)
+			bidHigh = price;
+	}
+	protected double getBidLow(){
+		return bidLow;
+	}
+	protected void updateBidLow(double price){
+		if(bidLow == 0)
+			bidLow = price;
+		else{
+			if(price < bidLow)
+				bidLow = price;
+		}
+	}
+	
+	protected double getAskHigh(){
+		return askHigh;
+	}
+	protected void updateAskHigh(double price){
+		if(price > askHigh)
+			askHigh = price;
+	}
+	protected double getAskLow(){
+		return askLow;
+	}
+	protected void updateAskLow(double price){
+		if(askLow == 0)
+			askLow = price;
+		else{
+			if(price < askLow)
+				askLow = price;
+		}
 	}
 	
 	/**
