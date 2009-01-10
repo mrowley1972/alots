@@ -121,7 +121,7 @@ public class InstrumentTest {
 		Assert.assertEquals(instrument.getAskLimitOrders().size(), 1);
 		Assert.assertEquals(instrument.getFilledOrders().size(), 9);
 		Assert.assertEquals(instrument.getPartiallyFilledOrders().size(), 1);
-		printBooks();
+		printAndVerifyBooks();
 	}
 	
 	@Test(dependsOnMethods = {"verifyStateOfBooksAfterSellLimitOrders"})
@@ -145,7 +145,7 @@ public class InstrumentTest {
 	}
 
 	//Helper method to see up-to-date view of the books
-	public void printBooks(){
+	public void printAndVerifyBooks(){
 		System.out.println();
 		System.out.println("**********BOOKS STATE***********");
 		System.out.println("Bid book state: ");
@@ -191,6 +191,22 @@ public class InstrumentTest {
 		
 		Assert.assertEquals(instrument.getAskVolumeAtPrice(25.02), 100);
 		Assert.assertEquals(instrument.getAskVolumeAtPrice(24), 0);
+		
+		//Test out all prices at various depths
+		Assert.assertEquals(instrument.getBidPriceAtDepth(0), 24.063);
+		Assert.assertEquals(instrument.getBidPriceAtDepth(1), 24.062);
+		Assert.assertEquals(instrument.getBidPriceAtDepth(2), 24.061);
+		Assert.assertEquals(instrument.getBidPriceAtDepth(3), 24.06);
+		Assert.assertEquals(instrument.getBidPriceAtDepth(4), 24.055);
+		
+		Assert.assertEquals(instrument.getAskPriceAtDepth(0), 25.02);
+		Assert.assertEquals(instrument.getAskPriceAtDepth(1), 0.0);
+		Assert.assertEquals(instrument.getAskPriceAtDepth(2), 0.0);
+		
+		System.out.println("Instrument's bid high " + instrument.getBidHigh());
+		System.out.println("Instrument's bid low " + instrument.getBidLow());
+		System.out.println("Instrument's ask high " + instrument.getAskHigh());
+		System.out.println("Instrument's ask low " + instrument.getAskLow());
 		
 		
 		System.out.println();
