@@ -1,4 +1,7 @@
 package core;
+
+import java.io.Serializable;
+
 /**
  * This interface is used by the Instrument class to handle all of the processing of books 
  * required by that class. A class implementing this interface must get access to all the books 
@@ -10,7 +13,7 @@ package core;
  *
  */
 
-public interface BookEngine {
+public interface BookEngine extends Serializable{
 
 	/**
 	 * Process a newly submitted order from a client. This method should either implement matching algorithms directly, 

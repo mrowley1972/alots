@@ -7,6 +7,8 @@ import java.util.concurrent.BlockingQueue;
 
 public class EquityBookEngine implements BookEngine {
 
+	private static final long serialVersionUID = -6028495077079186305L;
+	
 	private List<Order> bidLimitOrders;
 	private List<Order> askLimitOrders;
 	private List<Order> filledOrders;

@@ -4,11 +4,14 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.List;
 
-import core.MarketsClosedException;
-
-
 public interface IExchangeSimulator extends Remote {
 	
+	/**
+	 * Register with the exchange to start submitting orders
+	 * @param client	<code>this</code> client implementing <code>Notifiable</code> interface - needs to be a remote stub
+	 * @return clientID	clientID to enable submitting orders
+	 * @throws RemoteException
+	 */
 	int register(Notifiable client) throws RemoteException;
 	
 	/**
@@ -16,6 +19,13 @@ public interface IExchangeSimulator extends Remote {
 	 * @return true if the exchange is operating, false otherwise
 	 */
 	boolean isOpen() throws RemoteException;
+	
+	/**
+	 * Create an instrument to be traded on the exchange. If the instrument is already being traded, new instrument is not created.
+	 * @param tickerSymbol a correct ticker symbol for this instrument
+	 * @return void
+	 */
+	void registerInstrument(String tickerSymbol) throws RemoteException;
 	
 	/**
 	 * Submit an order to the exchange to be traded
@@ -42,11 +52,13 @@ public interface IExchangeSimulator extends Remote {
 	IOrder cancelOrder(int clientID, long orderID) throws RemoteException;
 	
 	/**
-	 * Create an instrument to be traded on the exchange. If the instrument is already being traded, new instrument is not created.
-	 * @param tickerSymbol a correct ticker symbol for this instrument
-	 * @return void
+	 * Get an order with <code>orderID</code> and belonging to a client with <code>clientID</code>
+	 * @param clientID	valid client's own id, assigned by the StockExchange during connection
+	 * @param orderID	one of orderIDs that this client has for own orders
+	 * @return	an order with <code>orderID</code>, or <code>null</code> if an order does not belong to a client
+	 *  with <code>clientID</code>
 	 */
-	void registerInstrument(String tickerSymbol) throws RemoteException;
+	public IOrder getClientOrder(int clientID, long orderID) throws RemoteException;
 	
 	/**
 	 * Get latest bid order book for an instrument
@@ -54,22 +66,7 @@ public interface IExchangeSimulator extends Remote {
 	 * @return current bid order book for this instrument
 	 * @exception IllegalArgumentException if instrument's ticker symbol is incorrect
 	 */
-	List<IOrder> getInstrumentBidBook(String tickerSymbol) throws RemoteException; 
 	
-	/**
-	 * Get latest ask order book for an instrument
-	 * @param tickerSymbol ticker symbol of a traded instrument
-	 * @return current ask order book for this instrument
-	 * @exception IllegalArgumentException if instrument's ticker symbol is incorrect
-	 */
-	List<IOrder> getInstrumentAskBook(String tickerSymbol) throws RemoteException;
-	
-	/**
-	 * Get the last price of an instrument
-	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
-	 * @return instrument's last price
-	 * @exception IllegalArgumentException if invalid ticker symbol is passed
-	 */
 	double getInstrumentLastPrice(String tickerSymbol) throws RemoteException;
 	
 	/**
@@ -142,7 +139,7 @@ public interface IExchangeSimulator extends Remote {
 	 * @return instrument's best bid price
 	 * @exception IllegalArgumentException if invalid ticker symbol is passed
 	 */
-	public double getInstrumentBestBid(String tickerSymbol) throws RemoteException;
+	double getInstrumentBestBid(String tickerSymbol) throws RemoteException;
 	
 	/**
 	 * Get instrument's best ask price
@@ -150,7 +147,75 @@ public interface IExchangeSimulator extends Remote {
 	 * @return instrument's best ask price
 	 * @exception IllegalArgumentException if invalid ticker symbol is passed
 	 */
-	public double getInstrumentBestAsk(String tickerSymbol) throws RemoteException;
+	double getInstrumentBestAsk(String tickerSymbol) throws RemoteException;
+	
+	/**
+	 * Get instrument's bid price at specified <code>depth</code>
+	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @param depth			required depth
+	 * @return instrument's bid price at <code>depth</code>
+	 * @exception IllegalArgumentException if invalid ticker symbol is passed
+	 */
+	double getInstrumentBidPriceAtDepth(String tickerSymbol, int depth) throws RemoteException;
+	
+	/**
+	 * Get instrument's ask price at specified <code>depth</code>
+	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @param depth			required depth
+	 * @return instrument's ask price at <code>depth</code>
+	 * @exception IllegalArgumentException if invalid ticker symbol is passed
+	 */
+	double getInstrumentAskPriceAtDepth(String tickerSymbol, int depth) throws RemoteException;
+	
+	/**
+	 * Get instrument's ask volume at specified <code>price</code>
+	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @param price			required price
+	 * @return instrument's ask volume at <code>price</code>
+	 * @exception IllegalArgumentException if invalid ticker symbol is passed
+	 */
+	long getInstrumentAskVolumeAtPrice(String tickerSymbol, double price) throws RemoteException;
+	
+	/**
+	 * Get instrument's bid volume at specified <code>price</code>
+	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @param price			required price
+	 * @return instrument's bid volume at <code>price</code>
+	 * @exception IllegalArgumentException if invalid ticker symbol is passed
+	 */
+	public long getInstrumentBidVolumeAtPrice(String tickerSymbol, double price) throws RemoteException;
+	
+	/**
+	 * Get instrument's daily bid high
+	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @return instrument's bid low for the whole time of exchange's operation
+	 * @exception IllegalArgumentException if invalid ticker symbol is passed
+	 */
+	double getInstrumentBidHigh(String tickerSymbol) throws RemoteException;
+	
+	/**
+	 * Get instrument's daily bid low
+	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @return instrument's bid low for the whole time of exchange's operation
+	 * @exception IllegalArgumentException if invalid ticker symbol is passed
+	 */
+	double getInstrumentBidLow(String tickerSymbol) throws RemoteException;
+	
+	/**
+	 * Get instrument's daily ask high
+	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @return instrument's ask high for the whole time of exchange's operation
+	 * @exception IllegalArgumentException if invalid ticker symbol is passed
+	 */
+	double getInstrumentAskHigh(String tickerSymbol) throws RemoteException;
+	
+	/**
+	 * Get instrument's daily ask low
+	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @return instrument's ask low for the whole time of exchange's operation
+	 * @exception IllegalArgumentException if invalid ticker symbol is passed
+	 */
+	double getInstrumentAskLow(String tickerSymbol) throws RemoteException;
 	
 	/**
 	 * Get a list of currently traded instruments.

@@ -11,10 +11,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Vector;
 
-public class Order implements IOrder, Serializable{
-	/**
-	 * 
-	 */
+public class Order implements IOrder{
+	
 	private static final long serialVersionUID = 1L;
 	/*
 	 * Holds a history of all trades that took place
@@ -30,7 +28,9 @@ public class Order implements IOrder, Serializable{
 	/*
 	 * A class to hold an order fill for this order only
 	 */
-	private class OrderTrade{
+	private class OrderTrade implements Serializable{
+		
+		private static final long serialVersionUID = 1L;
 		long volume;
 		double tradePrice;
 		Date tradeTime;
@@ -41,13 +41,13 @@ public class Order implements IOrder, Serializable{
 			this.tradeTime = tradeTime;
 		}
 		
-		protected long getVolume(){
+		public long getVolume(){
 			return volume;
 		}
-		protected double getTradePrice(){
+		public double getTradePrice(){
 			return tradePrice;
 		}
-		protected Date getTradeTime(){
+		public Date getTradeTime(){
 			return tradeTime;
 		}
 		
