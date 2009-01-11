@@ -15,12 +15,14 @@ package core;
 import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.BlockingQueue;
+import java.io.Serializable;
 import java.math.*;
 
 import common.IOrder;
 
-
-public class Instrument {
+public class Instrument implements Serializable{
+	
+	private static final long serialVersionUID = -5116539492730231241L;
 	/*
 	 * Books implemented as a Vector, thread-safe and increment size can be set
 	 */

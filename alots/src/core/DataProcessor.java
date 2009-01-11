@@ -24,8 +24,10 @@ public class DataProcessor implements Runnable {
 			try{
 				Order order = updatedOrders.take();
 				Notifiable client = registeredClients.get(order.getClientID());
-				if(client != null)
+				if(client != null){
 					client.notify(order.getOrderID());
+					System.out.println("Client " + order.getClientID() + " has been notified of order " + order.getOrderID());
+				}
 				
 			}catch(InterruptedException e){
 				e.printStackTrace();

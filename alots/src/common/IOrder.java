@@ -1,35 +1,91 @@
 package common;
 
-import java.rmi.Remote;
-import java.rmi.RemoteException;
+import java.io.Serializable;
 import java.util.Date;
 
-public interface IOrder extends Remote{
+public interface IOrder extends Serializable{
 	
-	String getInstrumentName() throws RemoteException;
+	/**
+	 * Get this order's instrument name
+	 * @return <code>this</code> order's instrument name
+	 */
+	String getInstrumentName();
 
-	double getPrice() throws RemoteException;
+	/**
+	 * Get this order's price
+	 * @return <code>this</code> order's price
+	 */
+	double getPrice();
 	
-	long getOrderID() throws RemoteException;
+	/**
+	 * Get this order's orderID
+	 * @return <code>this</code> order's orderID
+	 */
+	long getOrderID();
 	
-	int getClientID() throws RemoteException;
+	/**
+	 * Get this order's clientID
+	 * @return <code>this</code> order's clientID
+	 */
+	int getClientID();
 	
-	Date getEntryTime() throws RemoteException;
+	/**
+	 * Get this order's time of entry
+	 * @return <code>this</code> order's submition time
+	 */
+	Date getEntryTime();
 	
-	long getQuantity() throws RemoteException ;
+	/**
+	 * Get this order's total quantity
+	 * @return <code>this</code> order's total quantity
+	 */
+	long getQuantity();
 	
-	long getOpenQuantity() throws RemoteException;
+	/**
+	 * Get this order's open quantity
+	 * @return <code>this</code> order's open quantity
+	 */
+	long getOpenQuantity();
 	
-	long getExecutedQuantity() throws RemoteException;
+	/**
+	 * Get this order's executed (filled) quantity
+	 * @return <code>this</code> order's executed (filled) quantity
+	 */
+	long getExecutedQuantity();
 	
-	double getAverageExecutedPrice() throws RemoteException;
+	/**
+	 * Get this order's average executed price, i.e. an average price of all fills
+	 * @return <code>this</code> order's average executed price
+	 */
+	double getAverageExecutedPrice();
 	
-	double getLastExecutedPrice() throws RemoteException;
+	/**
+	 * Get this order's last executed price, i.e. price at which it was last filled or partially filled
+	 * @return <code>this</code> order's last executed price
+	 */
+	double getLastExecutedPrice();
 	
-	long getLastExecutedVolume() throws RemoteException;
+	/**
+	 * Get this order's last executed volume, i.e. volume that was last filled or partially filled
+	 * @return <code>this</code> order's last executed volume
+	 */
+	long getLastExecutedVolume();
 	
-	int getNumberOfTrades() throws RemoteException;
+	/**
+	 * Get number of trades (fills) that took place for this order
+	 * @return a number of trades (fills) that were executed for this order
+	 */
+	int getNumberOfTrades();
 	
-	void printTrades() throws RemoteException;
+	/**
+	 * Print all trades (fills) that took place for this order
+	 */
+	void printTrades();
+	
+	/**
+	 * Get textual description for this order
+	 * @return textual description for this order
+	 */
+	String toString();
 	
 }

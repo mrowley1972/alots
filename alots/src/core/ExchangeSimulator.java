@@ -115,6 +115,19 @@ public class ExchangeSimulator implements IExchangeSimulator{
 	}
 	
 	/**
+	 * Create an instrument to be traded on the exchange. If the instrument is already being traded, new instrument is not created.
+	 * @param tickerSymbol a correct ticker symbol for this instrument
+	 * @return void
+	 */
+	public synchronized void registerInstrument(String tickerSymbol){
+		Instrument instrument = findInstrument(tickerSymbol);
+		if(instrument == null){
+			instrument = new Instrument(tickerSymbol, updatedOrders);
+			instruments.put(tickerSymbol.toUpperCase(), instrument);
+		}
+	}
+	
+	/**
 	 * Submit an order to the exchange to be traded
 	 * @param tickerSymbol  a valid traded instrument's ticker symbol
 	 * @param side 			either BUY or SELL
@@ -169,10 +182,11 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		//finally process this order and return the object
 		processOrder(order);
 		//return of a unique orderID indicates a confirmation that an order has been submitted.
+		System.out.println("Order " + order.getOrderID() + " has been submitted");
+		
 		return order.getOrderID();
 	}
 	
-
 	private void processOrder(Order order){
 		//add the order to the processing queue
 		try{
@@ -183,12 +197,6 @@ public class ExchangeSimulator implements IExchangeSimulator{
 			e.printStackTrace();
 		}
 	}
-
-	/*
-	 * An order can only be cancelled if clientID matches the order's clientID
-	 * Client needs to supply an ID of the order that needs to be cancelled
-	 * Returns null if cancellation is not possible, otherwise returns an order that was cancelled
-	 */
 	
 	/**
 	 * Cancel an existing order <code>orderID</code>, belonging to this client with <code>clientID</code>.
@@ -199,10 +207,7 @@ public class ExchangeSimulator implements IExchangeSimulator{
 	 *  to this client or has already been filled (specific reason is hard to trace back).
 	 * @exception MarketsClosedException if the market is not currently opened
 	 */
-	public synchronized Order cancelOrder(int clientID, long orderID){
-		//if(!started)
-			//throw new MarketsClosedException("The market is currently closed");
-		
+	public synchronized IOrder cancelOrder(int clientID, long orderID){
 		Order order = clientOrdersDB.get(clientID).findOrder(orderID);
 		if(order != null){
 			return order.getInstrument().processCancelOrder(order);
@@ -212,17 +217,21 @@ public class ExchangeSimulator implements IExchangeSimulator{
 	}
 	
 	/**
-	 * Create an instrument to be traded on the exchange. If the instrument is already being traded, new instrument is not created.
-	 * @param tickerSymbol a correct ticker symbol for this instrument
-	 * @return void
+	 * Get an order with <code>orderID</code> and belonging to a client with <code>clientID</code>
+	 * @param clientID	valid client's own id, assigned by the StockExchange during connection
+	 * @param orderID	one of orderIDs that this client has for own orders
+	 * @return	an order with <code>orderID</code>, or <code>null</code> if an order does not belong to a client
+	 *  with <code>clientID</code>
 	 */
-	public synchronized void registerInstrument(String tickerSymbol){
-		Instrument instrument = findInstrument(tickerSymbol);
-		if(instrument == null){
-			instrument = new Instrument(tickerSymbol, updatedOrders);
-			instruments.put(tickerSymbol.toUpperCase(), instrument);
-		}
+	public IOrder getClientOrder(int clientID, long orderID){
+		IOrder order = clientOrdersDB.get(clientID).findOrder(orderID);
+		if(order != null)
+			return order;
+		//return null if order is not found
+		return null;
 	}
+	
+	
 	
 	/**
 	 * Get latest bid order book for an instrument
@@ -231,12 +240,12 @@ public class ExchangeSimulator implements IExchangeSimulator{
 	 * @exception IllegalArgumentException if instrument's ticker symbol is incorrect
 	 */
 	public List<IOrder> getInstrumentBidBook(String tickerSymbol){
-		//if(!started)
-			//throw new MarketsClosedException("The market is currently closed");
-		
 		Instrument instrument = findInstrument(tickerSymbol);
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol " + tickerSymbol);
+		
+		System.out.println("Bid book has been requested...");
+		
 		return instrument.getBidLimitOrders();
 	}
 	
@@ -247,11 +256,12 @@ public class ExchangeSimulator implements IExchangeSimulator{
 	 * @exception IllegalArgumentException if instrument's ticker symbol is incorrect
 	 */
 	public List<IOrder> getInstrumentAskBook(String tickerSymbol){
-		//if(!started)
-			//throw new MarketsClosedException("The market is currently closed");
 		Instrument instrument = findInstrument(tickerSymbol);
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol "+ tickerSymbol);
+		
+		System.out.println("Ask book has been requested...");
+		
 		return instrument.getAskLimitOrders();
 	}
 
@@ -447,7 +457,35 @@ public class ExchangeSimulator implements IExchangeSimulator{
 	}
 	
 	/**
-	 * Get instrument's bid high
+	 * Get instrument's ask volume at specified <code>price</code>
+	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @param price			required price
+	 * @return instrument's ask volume at <code>price</code>
+	 * @exception IllegalArgumentException if invalid ticker symbol is passed
+	 */
+	public long getInstrumentAskVolumeAtPrice(String tickerSymbol, double price){
+		Instrument instrument = findInstrument(tickerSymbol);
+		if(instrument == null)
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+		return instrument.getAskVolumeAtPrice(price);
+	}
+	
+	/**
+	 * Get instrument's bid volume at specified <code>price</code>
+	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @param price			required price
+	 * @return instrument's bid volume at <code>price</code>
+	 * @exception IllegalArgumentException if invalid ticker symbol is passed
+	 */
+	public long getInstrumentBidVolumeAtPrice(String tickerSymbol, double price){
+		Instrument instrument = findInstrument(tickerSymbol);
+		if(instrument == null)
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+		return instrument.getBidVolumeAtPrice(price);
+	}
+	
+	/**
+	 * Get instrument's daily bid high
 	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
 	 * @return instrument's bid high for the whole time of exchange's operation
 	 * @exception IllegalArgumentException if invalid ticker symbol is passed
@@ -460,7 +498,7 @@ public class ExchangeSimulator implements IExchangeSimulator{
 	}
 	
 	/**
-	 * Get instrument's bid low
+	 * Get instrument's daily bid low
 	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
 	 * @return instrument's bid low for the whole time of exchange's operation
 	 * @exception IllegalArgumentException if invalid ticker symbol is passed
@@ -473,7 +511,7 @@ public class ExchangeSimulator implements IExchangeSimulator{
 	}
 	
 	/**
-	 * Get instrument's ask high
+	 * Get instrument's daily ask high
 	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
 	 * @return instrument's ask high for the whole time of exchange's operation
 	 * @exception IllegalArgumentException if invalid ticker symbol is passed
@@ -486,7 +524,7 @@ public class ExchangeSimulator implements IExchangeSimulator{
 	}
 	
 	/**
-	 * Get instrument's ask low
+	 * Get instrument's daily ask low
 	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
 	 * @return instrument's ask low for the whole time of exchange's operation
 	 * @exception IllegalArgumentException if invalid ticker symbol is passed
@@ -534,26 +572,32 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		return instrument;
 	}
 	
-	/*
+	
 	public static void main(String args[]){
+		if(args.length < 1){
+			System.out.println("Usage: ExchangeSimulator <rmi_port>");
+			System.exit(1);
+		}
+		int rmiPort = Integer.parseInt(args[0]);
 		if(System.getSecurityManager() == null){
 			System.setSecurityManager(new RMISecurityManager());
 		}
+		
 		try{
 			String name = "ExchangeSimulator";
-			IExchangeSimulator exchangeSimulator = new ExchangeSimulator();
-			//exchangeSimulator.start();
+			ExchangeSimulator exchange = new ExchangeSimulator();
+			exchange.start();
 			
-			IExchangeSimulator stub = (IExchangeSimulator) UnicastRemoteObject.exportObject(exchangeSimulator, 0);
-			Registry registry = LocateRegistry.getRegistry();
+			IExchangeSimulator stub = (IExchangeSimulator) UnicastRemoteObject.exportObject(exchange, 0);
+			Registry registry = LocateRegistry.getRegistry(rmiPort);
 			registry.rebind(name, stub);
-			System.out.println("Exchange Simulator is bound");
+			System.out.println("Exchange Simulator is up and running on the server");
 			
 		}
 		catch(Exception e){
-			System.out.println("ExchangeSimulator exception");
+			System.out.println("ExchangeSimulator exception: ");
 			e.printStackTrace();
 		}
 	}
-	*/
+	
 }
