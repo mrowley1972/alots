@@ -244,8 +244,6 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol " + tickerSymbol);
 		
-		System.out.println("Bid book has been requested...");
-		
 		return instrument.getBidLimitOrders();
 	}
 	
@@ -259,8 +257,6 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		Instrument instrument = findInstrument(tickerSymbol);
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol "+ tickerSymbol);
-		
-		System.out.println("Ask book has been requested...");
 		
 		return instrument.getAskLimitOrders();
 	}
