@@ -63,7 +63,7 @@ public class Order implements IOrder{
 	private int clientID;
 	private long orderID;
 	private Instrument instrument;
-	private Date entryTime;
+	private long entryTime;
 	private double price;
 	private long quantity;
 	private long openQuantity;
@@ -83,7 +83,7 @@ public class Order implements IOrder{
 		executedQuantity = 0;
 		orderID = Order.generateOrderID();
 		
-		this.entryTime = new Date();
+		this.entryTime = System.nanoTime();
 		trades = new Vector<OrderTrade>();
 	}
 	
@@ -148,7 +148,7 @@ public class Order implements IOrder{
 		return clientID;
 	}
 	
-	public Date getEntryTime(){
+	public Long getEntryTime(){
 		return entryTime;
 	}
 	
