@@ -19,8 +19,9 @@ public class PriceTimePriorityComparator implements Comparator<Order> {
 		
 		//If both prices are equal, we need to sort according to their entry time
 		if(priceComp == 0){
-			//compare current order entry time with the other
-			int timeComp = o1.getEntryTime().compareTo(o2.getEntryTime());
+			
+			int timeComp =((Long)o2.getEntryTime()).compareTo((Long)o1.getEntryTime());
+			
 			priceComp = timeComp;
 		}
 		/*

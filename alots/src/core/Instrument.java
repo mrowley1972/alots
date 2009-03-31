@@ -1,6 +1,6 @@
 /**
- * An class fully encapsulating properties of a traded Instrument on an exchange. 
- * The class holds four books - bid order book, ask order book, and two books representing filled and partially 
+ * A class fully encapsulating properties of a traded exchange instrument. 
+ * The class holds four books - bid order, ask order, and two books representing filled and partially 
  * filled orders. These books are not manipulated by this class directly, instead it requires a class implementing 
  * <code>BookEngine</code> interface, that makes all of the necessary modifications to these containers. 
  * Clients must not be able to access this object directly, instead delegating calls are made from <code>StockExchange</code> 
@@ -191,25 +191,29 @@ public class Instrument implements Serializable{
 	}
 	
 	/**
-	 * Get this Instrument's bid volume. 
+	 * Get this Instrument's bid volume - volume of the bid side of the book
 	 * @return bid volume of <code>this</code> instrument
 	 */
 	protected long getBidVolume(){
 		return bidVolume;
 	}
 	
+	//bid volume is only updated when a new buy order is inserted, or when matched by a sell order
+	//i.e. it is a volume of the book on the bid side
 	protected void updateBidVolume(long volume){
 		bidVolume += volume;
 	}
 
 	/**
-	 * Get this Instrument's ask volume. 
+	 * Get this Instrument's ask volume - volume of the ask side of the book
 	 * @return ask volume of <code>this</code> instrument
 	 */
 	protected long getAskVolume(){
 		return askVolume;
 	}
 	
+	//ask volume is only updated when a new sell order is inserted, or when matched by a buy order
+	//i.e. it is a volume of the book on the sell side
 	protected void updateAskVolume(long volume){
 		askVolume += volume;
 	}
@@ -223,6 +227,8 @@ public class Instrument implements Serializable{
 		return buyVolume;
 	}
 	
+	//buy volume is only updated when buy order has been matched
+	//i.e. it is a volume of matched buy orders
 	protected void updateBuyVolume(long volume){
 		buyVolume += volume;
 	}
@@ -235,6 +241,8 @@ public class Instrument implements Serializable{
 		return sellVolume;	
 	}
 	
+	//sell volume is only updated when sell order has been matched
+	//i.e. it is a volume of matched sell orders
 	protected void updateSellVolume(long volume){
 		sellVolume += volume;
 	}
@@ -459,6 +467,10 @@ public class Instrument implements Serializable{
 	 */
 	public String toString(){
 		return tickerSymbol;
+	}
+	
+	public int findIndex(Order order){
+		return bookEngine.findIndex(order);
 	}
 	
 }

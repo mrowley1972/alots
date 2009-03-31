@@ -26,16 +26,19 @@ public class InstrumentTest {
 	}
 	
 	@Test
-	public void insertBuyOrders(){
+	public void insertBuyOrders() throws InterruptedException{
 		bOrder = new Order(1, instrument, core.Order.Side.BUY, core.Order.Type.LIMIT, 500, 24.0620);
 		bOrder2 = new Order(2, instrument, core.Order.Side.BUY, core.Order.Type.LIMIT, 5000, 24.0600);
 		bOrder3 = new Order(3, instrument, core.Order.Side.BUY, core.Order.Type.LIMIT, 6000, 24.0610);
 		bOrder4 = new Order(1, instrument, core.Order.Side.BUY, core.Order.Type.LIMIT, 1100, 24.0550);
+		Thread.sleep(1);
 		bOrder5 = new Order(3, instrument, core.Order.Side.BUY, core.Order.Type.LIMIT, 100, 24.0600);
+		
 		instrument.insertBuyOrder(bOrder);
 		instrument.insertBuyOrder(bOrder2);
 		instrument.insertBuyOrder(bOrder3);
 		instrument.insertBuyOrder(bOrder4);
+		
 		instrument.insertBuyOrder(bOrder5);
 	}
 	

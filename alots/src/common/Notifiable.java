@@ -10,4 +10,6 @@ import java.rmi.RemoteException;
 public interface Notifiable extends Remote{
 
 	public void notify(long orderID) throws RemoteException;
+	
+	//Notification of last price
 }

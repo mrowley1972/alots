@@ -52,4 +52,6 @@ public interface BookEngine extends Serializable{
 	 */
 	void insertSellOrder(Order o);
 	
+	int findIndex(Order order);
+	
 }

@@ -33,7 +33,7 @@ public interface IOrder extends Serializable{
 	 * Get this order's time of entry
 	 * @return <code>this</code> order's submition time
 	 */
-	Date getEntryTime();
+	Long getEntryTime();
 	
 	/**
 	 * Get this order's total quantity

@@ -1,5 +1,6 @@
 package core;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -65,6 +66,7 @@ public class EquityBookEngine implements BookEngine {
 		Instrument instrument = order.getInstrument();
 		
 		if(order.side() == core.Order.Side.BUY){
+			//get the market current price for the market order
 			if(order.type() == core.Order.Type.MARKET && askLimitOrders.size()>0)
 				order.setPrice(askLimitOrders.get(0).getPrice());
 			
@@ -80,8 +82,10 @@ public class EquityBookEngine implements BookEngine {
 				addToFilledOrders(order);
 			else
 				insertBuyOrder(order);
+			
 		}
 		else{
+			//get the market current price for the market order
 			if(order.type() == core.Order.Type.MARKET && bidLimitOrders.size()>0)
 				order.setPrice(bidLimitOrders.get(0).getPrice());
 			
@@ -103,47 +107,67 @@ public class EquityBookEngine implements BookEngine {
 		cleanUpPartiallyFilledOrders();
 	}
 
+	//currently takes O(n) for the insertion in the worst case - need to do in log(n)
+	
 	public void insertBuyOrder(Order order){
 		order.getInstrument().updateBidVolume(order.getOpenQuantity());
 		
+		int i = findIndex(order);	
+		bidLimitOrders.add(i, order);
+		
+			/*
 			int i;
 			double price = order.getPrice();
-			Date entryTime = order.getEntryTime();
+			Long entryTime = order.getEntryTime();
 			
 			for(i=0; i<bidLimitOrders.size(); i++){
 				Order curOrder = bidLimitOrders.get(i);
 			
 				if((curOrder.getPrice() < price) || (curOrder.getPrice()==price && 
-						curOrder.getEntryTime().compareTo(entryTime)>0)){
+						((Long)curOrder.getEntryTime()).compareTo(entryTime)>0)){
 					bidLimitOrders.add(i, order);
 					break;
 				}
 			}
 			if(i == (bidLimitOrders.size()))
 				bidLimitOrders.add(order);
+	*/
 	}
+	
 	
 	
 	public void insertSellOrder(Order order){
 		order.getInstrument().updateAskVolume(order.getOpenQuantity());
+		int i = findIndex(order);
+		askLimitOrders.add(i, order);
 		
+		/*
 		int i;
 		double price = order.getPrice();
-		Date entryTime = order.getEntryTime();
+		Long entryTime = order.getEntryTime();
 		
 		for(i=0; i<askLimitOrders.size(); i++){
 			Order curOrder = askLimitOrders.get(i);
 		
 			if((curOrder.getPrice() > price) || (curOrder.getPrice()==price && 
-					curOrder.getEntryTime().compareTo(entryTime)>0)){
+					((Long)curOrder.getEntryTime()).compareTo(entryTime)>0)){
 				askLimitOrders.add(i, order);
 				break;
 			}
 		}
 		if(i == (askLimitOrders.size()))
 			askLimitOrders.add(order);
+			
+		*/
 	}
 	
+	public int findIndex(Order order){
+		
+		//this returns (-insertion point -1), where insertion point is the needed index
+		int i = Collections.binarySearch(bidLimitOrders, order, new PriceTimePriorityComparator());
+	
+		return -(i+1);	
+	}
 	
 	private synchronized void matchSellOrder(Order order){
 		if(bidLimitOrders.size() > 0){

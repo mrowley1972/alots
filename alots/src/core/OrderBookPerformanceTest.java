@@ -7,6 +7,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class OrderBookPerformanceTest {
 
+	
 	public static void main(String[] args) {
 
 		BlockingQueue<Order> queue = new LinkedBlockingQueue<Order>();
@@ -49,10 +50,11 @@ public class OrderBookPerformanceTest {
 			bprice = bprice - tsize; bprice = ((int)bprice*100)/100.0;
 
 			Order border = new Order(id++,instrument,Order.Side.BUY,core.Order.Type.LIMIT, 1, sprice);
-
+			
+			
 			instrument.processNewOrder(border);
 
-			Order sorder = new Order(id++,instrument,Order.Side.BUY,core.Order.Type.LIMIT, 1, bprice);
+			Order sorder = new Order(id++,instrument,Order.Side.SELL,core.Order.Type.LIMIT, 1, bprice);
 
 			instrument.processNewOrder(sorder);			
 
