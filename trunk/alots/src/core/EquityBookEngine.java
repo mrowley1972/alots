@@ -1,7 +1,6 @@
 package core;
 
 import java.util.Collections;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -15,18 +14,21 @@ public class EquityBookEngine implements BookEngine {
 	private List<Order> filledOrders;
 	private List<Order> partiallyFilledOrders;
 	private BlockingQueue<Order> updatedOrders;
+	private BlockingQueue<TAQNotification> notifications;
 	
 	/*
 	 * When BookEngine object is created, it gets access to all Instrument books 
 	 */
 	public EquityBookEngine(List<Order> bidLimitOrders, List<Order> askLimitOrders, List<Order> filledOrders, 
-			List<Order> partiallyFilledOrders, BlockingQueue<Order> updatedOrders){
+			List<Order> partiallyFilledOrders, BlockingQueue<Order> updatedOrders, 
+			BlockingQueue<TAQNotification> notifications){
 		
 		this.bidLimitOrders = bidLimitOrders;
 		this.askLimitOrders = askLimitOrders;
 		this.filledOrders = filledOrders;
 		this.partiallyFilledOrders = partiallyFilledOrders;
 		this.updatedOrders = updatedOrders;
+		this.notifications = notifications;
 	}
 	
 	public Order processCancelOrder(Order order){
@@ -161,7 +163,7 @@ public class EquityBookEngine implements BookEngine {
 		*/
 	}
 	
-	public int findIndex(Order order){
+	protected int findIndex(Order order){
 		
 		//this returns (-insertion point -1), where insertion point is the needed index
 		int i = Collections.binarySearch(bidLimitOrders, order, new PriceTimePriorityComparator());
@@ -210,8 +212,14 @@ public class EquityBookEngine implements BookEngine {
 					 
 					//put into pushing queue for client notifications of both orders
 					updatedOrders.add(order); updatedOrders.add(curOrder);
+					
+					//create new TAQNotification object about this trade
+					TAQNotification notification = new TAQNotification(TAQNotification.Type.TRADE, instrument.getTickerSymbol(), 
+							System.currentTimeMillis(), price, quantity, Order.Side.SELL);
+					notifications.add(notification);
 				
 				}
+				//need to break to avoid going through the whole book, as it is ordered
 				else{
 					break;
 				}
@@ -263,7 +271,15 @@ public class EquityBookEngine implements BookEngine {
 					
 					//put into pushing queue for client notifications of both orders
 					updatedOrders.add(order); updatedOrders.add(curOrder);
-				} else {
+					
+					//create new TAQNotification about this trade
+					TAQNotification notification = new TAQNotification(TAQNotification.Type.TRADE, instrument.getTickerSymbol(), 
+							System.currentTimeMillis(), price, quantity, Order.Side.BUY);
+					notifications.add(notification);
+					
+				} 
+				//need to break to avoid going through the whole book as it is ordered
+				else{
 					break;
 				}	
 			}

@@ -9,6 +9,7 @@ import java.util.List;
 import common.Notifiable;
 import common.IExchangeSimulator;
 import common.IOrder;
+import core.Order;
 
 public class Client implements Notifiable{
 	
@@ -27,9 +28,18 @@ public class Client implements Notifiable{
 	}
 
 	//This method needs to have functionality for accepting updates about orders
-	public void notify(long orderID){
-		System.out.println("Received notification for order: " + orderID);
+	
+	public void notifyOrder(long orderID, double price, double quantity){
+		System.out.println("Received notification for order: " + orderID + "; average executed price: " + price +
+				"; executed quantity: " + quantity);
 	}
+	
+	public void notifyTrade(String ticker, long time, Order.Side side, double price, double quantity){
+		System.out.println("Received instrument notification: " + ticker + "; time: " + time + "; side: " + side + 
+				"; price: " + price + "; quantity: " + quantity);
+	}
+	
+	
 	
 	public void printBidBook(List<IOrder> bidLimitOrders){
 		System.out.println("***BID BOOK***");

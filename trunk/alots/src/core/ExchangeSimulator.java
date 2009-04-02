@@ -32,23 +32,32 @@ import common.Notifiable;
 public class ExchangeSimulator implements IExchangeSimulator{
 
 	private AbstractMap<Integer, ClientOrders> clientOrdersDB;
-	private AbstractMap<String, Instrument> instruments;
+	private AbstractMap<String, Instrument> registeredInstruments;
 	//holds all submitted, but not yet processed client orders
-	private BlockingQueue<Order> orders;
+	private BlockingQueue<Order> submittedOrders;
 	//holds all updated orders that have been either fully or partially processed
 	//these are pushed to subscribed clients
 	private BlockingQueue<Order> updatedOrders;
 	//holds all clients that have been registered to be notified of their orders
 	private AbstractMap<Integer, Notifiable> registeredClients;
+	
+	//holds subscriptions to specific instruments
+	private AbstractMap<String, ArrayList<Notifiable>> instrumentSubscribers;
+	//holds notifications to be communicated to clients
+	private BlockingQueue<TAQNotification> taqNotifications;
 	//state of the stock exchange
 	private boolean started = false;
 	
 	//responsible for processing new orders from order's queue
-	private OrderProcessor orderProcessor;
+	private OrderProcessor orderProcessingEngine;
 	//responsible for notifying clients about any updated orders that belong to them
-	private DataProcessor dataProcessor;
+	private ClientOrdersNotificationEngine ordersNotificationEngine;
+	//responsible for notifying clients of changes to the instruments they subscribed to
+	private TAQNotificationEngine taqNotificationEngine;
+	
 	private Thread op;
-	private Thread dp;
+	private Thread cn;
+	private Thread ne;
 	private static int nextClientID = 0;
 	
 	/**
@@ -57,23 +66,27 @@ public class ExchangeSimulator implements IExchangeSimulator{
 	public ExchangeSimulator(){
 		//Initialise all containers
 		clientOrdersDB = new ConcurrentHashMap<Integer, ClientOrders>();
-		instruments = new ConcurrentHashMap<String, Instrument>();
-		orders = new LinkedBlockingQueue<Order>();
+		registeredInstruments = new ConcurrentHashMap<String, Instrument>();
+		submittedOrders = new LinkedBlockingQueue<Order>();
 		updatedOrders = new LinkedBlockingQueue<Order>();
 		registeredClients = new ConcurrentHashMap<Integer, Notifiable>();
+		instrumentSubscribers = new ConcurrentHashMap<String, ArrayList<Notifiable>>();
+		taqNotifications = new LinkedBlockingQueue<TAQNotification>();
 		
-		//Initialise all processors and make new threads
-		orderProcessor = new OrderProcessor(orders);
-		dataProcessor = new DataProcessor(registeredClients, updatedOrders);
-		op = new Thread(orderProcessor);
-		dp = new Thread(dataProcessor);
+		//Initialise all engines and make new threads
+		orderProcessingEngine = new OrderProcessor(submittedOrders);
+		ordersNotificationEngine = new ClientOrdersNotificationEngine(registeredClients, updatedOrders);
+		taqNotificationEngine = new TAQNotificationEngine(instrumentSubscribers, taqNotifications);
+		op = new Thread(orderProcessingEngine);
+		cn = new Thread(ordersNotificationEngine);
+		ne = new Thread(taqNotificationEngine);
 	}
 	
 	protected int generateClientID(){
-		return ++ExchangeSimulator.nextClientID;
+		return ExchangeSimulator.nextClientID +=7;
 	}
 	
-	//The first method that client must call to obtain correct clientID and be registered for notifications
+	//The very first method that client must call to obtain correct clientID and be registered for notifications
 	public int register(Notifiable client){
 		//Generate unique clientID and record for future notifications
 		Integer clientID = generateClientID();
@@ -88,7 +101,8 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		if(!started){
 			started = true;
 			op.start();
-			dp.start();
+			cn.start();
+			ne.start();
 		}
 	}
 	/**
@@ -97,7 +111,7 @@ public class ExchangeSimulator implements IExchangeSimulator{
 	protected void stop(){
 		try{
 			op.join(1000);
-			orders.clear();
+			submittedOrders.clear();
 			clientOrdersDB.clear();
 			started = false;
 		}
@@ -116,20 +130,63 @@ public class ExchangeSimulator implements IExchangeSimulator{
 	
 	/**
 	 * Create an instrument to be traded on the exchange. If the instrument is already being traded, new instrument is not created.
-	 * @param tickerSymbol a correct ticker symbol for this instrument
+	 * @param ticker a correct ticker symbol for this instrument
 	 * @return void
 	 */
-	public synchronized void registerInstrument(String tickerSymbol){
-		Instrument instrument = findInstrument(tickerSymbol);
+	public synchronized void registerInstrument(String ticker){
+		Instrument instrument = findInstrument(ticker);
 		if(instrument == null){
-			instrument = new Instrument(tickerSymbol, updatedOrders);
-			instruments.put(tickerSymbol.toUpperCase(), instrument);
+			instrument = new Instrument(ticker, updatedOrders, taqNotifications);
+			registeredInstruments.put(ticker.toUpperCase(), instrument);
+		}
+	}
+	
+
+	/**
+	 * Subscribe to get TAQ notifications from a particular instrument
+	 * @param client	a remote Notifiable stub (yourself)
+	 * @param ticker	a valid traded instrument's ticker symbol to be subscribed to
+	 * @exception IllegalArgumentException if parameters do not comply
+	 */
+	public void subscribeToInstrument(Notifiable client, String ticker){
+		
+		Instrument instrument = findInstrument(ticker);
+		if(instrument == null)
+			throw new IllegalArgumentException("Cannot subscribe to this instrument, invalid ticker symbol: " + ticker);
+		
+		if(instrumentSubscribers.containsKey(instrument.getTickerSymbol())){
+			//don't add the same client twice
+			if(!(instrumentSubscribers.get(instrument.getTickerSymbol()).contains(client))){
+				instrumentSubscribers.get(instrument.getTickerSymbol()).add(client);
+			}
+		}else{
+			ArrayList<Notifiable> list = new ArrayList<Notifiable>();
+			list.add(client);
+			instrumentSubscribers.put(instrument.getTickerSymbol(), list);
+		}		
+	}
+	
+	/**
+	 * Unsubscribe from getting notifications about an instrument
+	 * @param client	a remote Notifiable stub (yourself)
+	 * @param ticker	a valid traded instrument's ticker symbol to be unsubscribed from
+	 * @exception IllegalArgumentException if parameters do not comply
+	 */
+	public void unsubscribeFromInstrument(Notifiable client, String ticker){
+		Instrument instrument = findInstrument(ticker);
+		if(instrument == null)
+			throw new IllegalArgumentException("Invalid ticker symbol: " + ticker);
+		
+		//will ignore if the client has never been subscribed to this instrument
+		if(instrumentSubscribers.containsKey(instrument.getTickerSymbol())){
+			if(instrumentSubscribers.get(instrument.getTickerSymbol()).contains(client))
+				instrumentSubscribers.get(instrument.getTickerSymbol()).remove(client);
 		}
 	}
 	
 	/**
 	 * Submit an order to the exchange to be traded
-	 * @param tickerSymbol  a valid traded instrument's ticker symbol
+	 * @param ticker  a valid traded instrument's ticker symbol
 	 * @param side 			either BUY or SELL
 	 * @param type 			either LIMIT or MARKET
 	 * @param price 		positive order price 
@@ -137,16 +194,16 @@ public class ExchangeSimulator implements IExchangeSimulator{
 	 * @return orderID		an id of this submitted order
 	 * @exception IllegalArgumentException if parameters do not comply
 	 */
-	public synchronized long submitOrder(String tickerSymbol, int clientID, 
+	public synchronized long submitOrder(String ticker, int clientID, 
 			String side, String type, double price, long quantity){
 	
 		// Validate all of the order's parameters
-		Instrument instrument = findInstrument(tickerSymbol);
+		Instrument instrument = findInstrument(ticker);
 		core.Order.Side orderSide;
 		core.Order.Type orderType;
 		//can only create orders for existing instruments
 		if(instrument == null)
-			throw new IllegalArgumentException("Invalid ticker symbol: " + tickerSymbol);
+			throw new IllegalArgumentException("Invalid ticker symbol: " + ticker);
 		
 		if(side.equalsIgnoreCase("BUY"))
 			orderSide = core.Order.Side.BUY;
@@ -190,7 +247,7 @@ public class ExchangeSimulator implements IExchangeSimulator{
 	private void processOrder(Order order){
 		//add the order to the processing queue
 		try{
-			orders.put(order);
+			submittedOrders.put(order);
 		}
 		catch(InterruptedException e){
 			System.out.println("ORDER QUEUE EXCEPTION: " + e.getMessage());
@@ -235,28 +292,28 @@ public class ExchangeSimulator implements IExchangeSimulator{
 	
 	/**
 	 * Get latest bid order book for an instrument
-	 * @param tickerSymbol ticker symbol of a traded instrument
+	 * @param ticker ticker symbol of a traded instrument
 	 * @return current bid order book for this instrument
 	 * @exception IllegalArgumentException if instrument's ticker symbol is incorrect
 	 */
-	public List<IOrder> getInstrumentBidBook(String tickerSymbol){
-		Instrument instrument = findInstrument(tickerSymbol);
+	public List<IOrder> getInstrumentBidBook(String ticker){
+		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
-			throw new IllegalArgumentException("Invalid ticker symbol " + tickerSymbol);
+			throw new IllegalArgumentException("Invalid ticker symbol " + ticker);
 		
 		return instrument.getBidLimitOrders();
 	}
 	
 	/**
 	 * Get latest ask order book for an instrument
-	 * @param tickerSymbol ticker symbol of a traded instrument
+	 * @param ticker ticker symbol of a traded instrument
 	 * @return current ask order book for this instrument
 	 * @exception IllegalArgumentException if instrument's ticker symbol is incorrect
 	 */
-	public List<IOrder> getInstrumentAskBook(String tickerSymbol){
-		Instrument instrument = findInstrument(tickerSymbol);
+	public List<IOrder> getInstrumentAskBook(String ticker){
+		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
-			throw new IllegalArgumentException("Invalid ticker symbol "+ tickerSymbol);
+			throw new IllegalArgumentException("Invalid ticker symbol "+ ticker);
 		
 		return instrument.getAskLimitOrders();
 	}
@@ -267,268 +324,268 @@ public class ExchangeSimulator implements IExchangeSimulator{
 	
 	/**
 	 * Get the last price of an instrument
-	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @param ticker	a valid ticker symbol of a currently traded instrument
 	 * @return instrument's last price
 	 * @exception IllegalArgumentException if invalid ticker symbol is passed
 	 */
-	public double getInstrumentLastPrice(String tickerSymbol){
-		Instrument instrument = findInstrument(tickerSymbol);
+	public double getInstrumentLastPrice(String ticker){
+		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
-			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
 		return instrument.getLastPrice();
 	}
 	
 	/**
 	 * Get the total volume of instrument's bid order book
-	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @param ticker	a valid ticker symbol of a currently traded instrument
 	 * @return instrument's bid order book volume
 	 * @exception IllegalArgumentException if invalid ticker symbol is passed
 	 */
-	public long getInstrumentBidVolume(String tickerSymbol){
-		Instrument instrument = findInstrument(tickerSymbol);
+	public long getInstrumentBidVolume(String ticker){
+		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
-			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
 		return instrument.getBidVolume();
 	}
 	
 	/**
 	 * Get the total volume of instrument's ask order book
-	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @param ticker	a valid ticker symbol of a currently traded instrument
 	 * @return instrument's ask order book volume
 	 * @exception IllegalArgumentException if invalid ticker symbol is passed
 	 */
-	public long getInstrumentAskVolume(String tickerSymbol){
-		Instrument instrument = findInstrument(tickerSymbol);
+	public long getInstrumentAskVolume(String ticker){
+		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
-			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
 		return instrument.getAskVolume();
 	}
 	
 	/**
 	 * Get instrument's buy volume
-	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @param ticker	a valid ticker symbol of a currently traded instrument
 	 * @return instrument's buy volume
 	 * @exception IllegalArgumentException if invalid ticker symbol is passed
 	 */
-	public long getInstrumentBuyVolume(String tickerSymbol){
-		Instrument instrument = findInstrument(tickerSymbol);
+	public long getInstrumentBuyVolume(String ticker){
+		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
-			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
 		return instrument.getBuyVolume();
 	}
 	
 	/**
 	 * Get instrument's sell volume
-	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @param ticker	a valid ticker symbol of a currently traded instrument
 	 * @return instrument's sell volume
 	 * @exception IllegalArgumentException if invalid ticker symbol is passed
 	 */
-	public long getInstrumentSellVolume(String tickerSymbol){
-		Instrument instrument = findInstrument(tickerSymbol);
+	public long getInstrumentSellVolume(String ticker){
+		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
-			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
 		return instrument.getSellVolume();
 	}
 	
 	/**
 	 * Get instrument's average price per share
-	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @param ticker	a valid ticker symbol of a currently traded instrument
 	 * @return instrument's average buy price
 	 * @exception IllegalArgumentException if invalid ticker symbol is passed
 	 */
 	
-	public double getInstrumentAveragePrice(String tickerSymbol){
-		Instrument instrument = findInstrument(tickerSymbol);
+	public double getInstrumentAveragePrice(String ticker){
+		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
-			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
 		return instrument.getAveragePrice();
 	}
 	
 	/**
 	 * Get instrument's average buy price per share
-	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @param ticker	a valid ticker symbol of a currently traded instrument
 	 * @return instrument's average sell price
 	 * @exception IllegalArgumentException if invalid ticker symbol is passed
 	 */
 	
-	public double getInstrumentAverageBuyPrice(String tickerSymbol){
-		Instrument instrument = findInstrument(tickerSymbol);
+	public double getInstrumentAverageBuyPrice(String ticker){
+		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
-			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
 		return instrument.getAverageBuyPrice();
 	}
 	
 	/**
 	 * Get instrument's average sell price per share
-	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @param ticker	a valid ticker symbol of a currently traded instrument
 	 * @return instrument's average sell price
 	 * @exception IllegalArgumentException if invalid ticker symbol is passed
 	 */
 	
-	public double getInstrumentAverageSellPrice(String tickerSymbol){
-		Instrument instrument = findInstrument(tickerSymbol);
+	public double getInstrumentAverageSellPrice(String ticker){
+		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
-			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
 		return instrument.getAverageSellPrice();
 	}
 	
 	/**
 	 * Get instrument's bid volume-weighted average price (VWAP)
-	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @param ticker	a valid ticker symbol of a currently traded instrument
 	 * @return instrument's bid VWAP
 	 * @exception IllegalArgumentException if invalid ticker symbol is passed
 	 */
-	public double getInstrumentBidVWAP(String tickerSymbol){
-		Instrument instrument = findInstrument(tickerSymbol);
+	public double getInstrumentBidVWAP(String ticker){
+		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
-			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
 		return instrument.getBidVWAP();
 	}
 	
 	/**
 	 * Get instrument's ask volume-weighted average price (VWAP)
-	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @param ticker	a valid ticker symbol of a currently traded instrument
 	 * @return instrument's ask VWAP
 	 * @exception IllegalArgumentException if invalid ticker symbol is passed
 	 */
-	public double getInstrumentAskVWAP(String tickerSymbol){
-		Instrument instrument = findInstrument(tickerSymbol);
+	public double getInstrumentAskVWAP(String ticker){
+		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
-			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
 		return instrument.getAskVWAP();
 	}
 	
 	/**
 	 * Get instrument's best bid price
-	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @param ticker	a valid ticker symbol of a currently traded instrument
 	 * @return instrument's best bid price
 	 * @exception IllegalArgumentException if invalid ticker symbol is passed
 	 */
-	public double getInstrumentBestBid(String tickerSymbol){
-		Instrument instrument = findInstrument(tickerSymbol);
+	public double getInstrumentBestBid(String ticker){
+		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
-			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
 		return instrument.getBestBid();
 	}
 	
 	/**
 	 * Get instrument's best ask price
-	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @param ticker	a valid ticker symbol of a currently traded instrument
 	 * @return instrument's best ask price
 	 * @exception IllegalArgumentException if invalid ticker symbol is passed
 	 */
-	public double getInstrumentBestAsk(String tickerSymbol){
-		Instrument instrument = findInstrument(tickerSymbol);
+	public double getInstrumentBestAsk(String ticker){
+		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
-			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
 		return instrument.getBestAsk();
 	}
 	
 	/**
 	 * Get instrument's bid price at specified <code>depth</code>
-	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @param ticker	a valid ticker symbol of a currently traded instrument
 	 * @param depth			required depth
 	 * @return instrument's bid price at <code>depth</code>
 	 * @exception IllegalArgumentException if invalid ticker symbol is passed
 	 */
-	public double getInstrumentBidPriceAtDepth(String tickerSymbol, int depth){
-		Instrument instrument = findInstrument(tickerSymbol);
+	public double getInstrumentBidPriceAtDepth(String ticker, int depth){
+		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
-			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
 		return instrument.getBidPriceAtDepth(depth);
 	}
 	
 	/**
 	 * Get instrument's ask price at specified <code>depth</code>
-	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @param ticker	a valid ticker symbol of a currently traded instrument
 	 * @param depth			required depth
 	 * @return instrument's ask price at <code>depth</code>
 	 * @exception IllegalArgumentException if invalid ticker symbol is passed
 	 */
-	public double getInstrumentAskPriceAtDepth(String tickerSymbol, int depth){
-		Instrument instrument = findInstrument(tickerSymbol);
+	public double getInstrumentAskPriceAtDepth(String ticker, int depth){
+		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
-			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
 		return instrument.getAskPriceAtDepth(depth);
 	}
 	
 	/**
 	 * Get instrument's ask volume at specified <code>price</code>
-	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @param ticker	a valid ticker symbol of a currently traded instrument
 	 * @param price			required price
 	 * @return instrument's ask volume at <code>price</code>
 	 * @exception IllegalArgumentException if invalid ticker symbol is passed
 	 */
-	public long getInstrumentAskVolumeAtPrice(String tickerSymbol, double price){
-		Instrument instrument = findInstrument(tickerSymbol);
+	public long getInstrumentAskVolumeAtPrice(String ticker, double price){
+		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
-			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
 		return instrument.getAskVolumeAtPrice(price);
 	}
 	
 	/**
 	 * Get instrument's bid volume at specified <code>price</code>
-	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @param ticker	a valid ticker symbol of a currently traded instrument
 	 * @param price			required price
 	 * @return instrument's bid volume at <code>price</code>
 	 * @exception IllegalArgumentException if invalid ticker symbol is passed
 	 */
-	public long getInstrumentBidVolumeAtPrice(String tickerSymbol, double price){
-		Instrument instrument = findInstrument(tickerSymbol);
+	public long getInstrumentBidVolumeAtPrice(String ticker, double price){
+		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
-			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
 		return instrument.getBidVolumeAtPrice(price);
 	}
 	
 	/**
 	 * Get instrument's daily bid high
-	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @param ticker	a valid ticker symbol of a currently traded instrument
 	 * @return instrument's bid high for the whole time of exchange's operation
 	 * @exception IllegalArgumentException if invalid ticker symbol is passed
 	 */
-	public double getInstrumentBidHigh(String tickerSymbol){
-		Instrument instrument = findInstrument(tickerSymbol);
+	public double getInstrumentBidHigh(String ticker){
+		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
-			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
 		return instrument.getBidHigh();
 	}
 	
 	/**
 	 * Get instrument's daily bid low
-	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @param ticker	a valid ticker symbol of a currently traded instrument
 	 * @return instrument's bid low for the whole time of exchange's operation
 	 * @exception IllegalArgumentException if invalid ticker symbol is passed
 	 */
-	public double getInstrumentBidLow(String tickerSymbol){
-		Instrument instrument = findInstrument(tickerSymbol);
+	public double getInstrumentBidLow(String ticker){
+		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
-			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
 		return instrument.getBidLow();
 	}
 	
 	/**
 	 * Get instrument's daily ask high
-	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @param ticker	a valid ticker symbol of a currently traded instrument
 	 * @return instrument's ask high for the whole time of exchange's operation
 	 * @exception IllegalArgumentException if invalid ticker symbol is passed
 	 */
-	public double getInstrumentAskHigh(String tickerSymbol){
-		Instrument instrument = findInstrument(tickerSymbol);
+	public double getInstrumentAskHigh(String ticker){
+		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
-			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
 		return instrument.getAskHigh();
 	}
 	
 	/**
 	 * Get instrument's daily ask low
-	 * @param tickerSymbol	a valid ticker symbol of a currently traded instrument
+	 * @param ticker	a valid ticker symbol of a currently traded instrument
 	 * @return instrument's ask low for the whole time of exchange's operation
 	 * @exception IllegalArgumentException if invalid ticker symbol is passed
 	 */
-	public double getInstrumentAskLow(String tickerSymbol){
-		Instrument instrument = findInstrument(tickerSymbol);
+	public double getInstrumentAskLow(String ticker){
+		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
-			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
 		return instrument.getAskLow();
 	}
 	
@@ -537,7 +594,7 @@ public class ExchangeSimulator implements IExchangeSimulator{
 	 * @return a list of currently traded instruments, <code>null</code> if there are no instruments being traded.
 	 */
 	public List<String> getTradedInstrumentsList(){
-		Iterator<String> iter = instruments.keySet().iterator();
+		Iterator<String> iter = registeredInstruments.keySet().iterator();
 		List<String> list = new ArrayList<String>();
 		while(iter.hasNext()){
 			list.add(iter.next());
@@ -545,10 +602,10 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		return list;
 	}
 	
-	private Instrument findInstrument(String tickerSymbol){
-		String symbol = tickerSymbol.toUpperCase();
-		if(instruments.containsKey(symbol))
-			return instruments.get(symbol);
+	private Instrument findInstrument(String ticker){
+		String symbol = ticker.toUpperCase();
+		if(registeredInstruments.containsKey(symbol))
+			return registeredInstruments.get(symbol);
 		return null;
 	}
 	
@@ -561,10 +618,10 @@ public class ExchangeSimulator implements IExchangeSimulator{
 	}
 	
 	// Helper method to ease testing, must only be used during testing
-	protected Instrument getInstrument(String tickerSymbol){
-		Instrument instrument = findInstrument(tickerSymbol);
+	protected Instrument getInstrument(String ticker){
+		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
-			throw new IllegalArgumentException("Invalid ticker symbol: "+ tickerSymbol);
+			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
 		return instrument;
 	}
 	
@@ -587,7 +644,7 @@ public class ExchangeSimulator implements IExchangeSimulator{
 			IExchangeSimulator stub = (IExchangeSimulator) UnicastRemoteObject.exportObject(exchange, 0);
 			Registry registry = LocateRegistry.getRegistry(rmiPort);
 			registry.rebind(name, stub);
-			System.out.println("Exchange Simulator is up and running on the server");
+			System.out.println("*** Exchange Simulator is up and running on the server ***");
 			
 		}
 		catch(Exception e){

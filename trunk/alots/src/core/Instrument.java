@@ -73,13 +73,15 @@ public class Instrument implements Serializable{
 	 * @param updatedOrders	an <code>queue</code> where all orders that have been updated are placed
 	 * @return a fully encapsulated <code>Instrument</code> object
 	 */
-	public Instrument(String tickerSymbol, BlockingQueue<Order> updatedOrders){
+	public Instrument(String tickerSymbol, BlockingQueue<Order> updatedOrders, 
+			BlockingQueue<TAQNotification> notifications){
 		this.tickerSymbol = tickerSymbol.toUpperCase();
 		bidLimitOrders = new Vector<Order>();
 		askLimitOrders = new Vector<Order>();
 		filledOrders = new Vector<Order>();
 		partiallyFilledOrders = new Vector<Order>();
-		bookEngine = new EquityBookEngine(bidLimitOrders, askLimitOrders, filledOrders, partiallyFilledOrders, updatedOrders);
+		bookEngine = new EquityBookEngine(bidLimitOrders, askLimitOrders, filledOrders, partiallyFilledOrders, 
+				updatedOrders, notifications);
 		
 		//Make sure all variables are initialized to zero from the beginning
 		bidVolume = askVolume = buyVolume = sellVolume = 0;
@@ -201,6 +203,7 @@ public class Instrument implements Serializable{
 	//bid volume is only updated when a new buy order is inserted, or when matched by a sell order
 	//i.e. it is a volume of the book on the bid side
 	protected void updateBidVolume(long volume){
+		//System.out.println("BID VOLUME UPDATED: " + volume);
 		bidVolume += volume;
 	}
 
@@ -215,6 +218,7 @@ public class Instrument implements Serializable{
 	//ask volume is only updated when a new sell order is inserted, or when matched by a buy order
 	//i.e. it is a volume of the book on the sell side
 	protected void updateAskVolume(long volume){
+		//System.out.println("ASK VOLUME UPDATED: " + volume);
 		askVolume += volume;
 	}
 	
@@ -230,6 +234,7 @@ public class Instrument implements Serializable{
 	//buy volume is only updated when buy order has been matched
 	//i.e. it is a volume of matched buy orders
 	protected void updateBuyVolume(long volume){
+		//System.out.println("BUY VOLUME UPDATED: " + volume);
 		buyVolume += volume;
 	}
 	
@@ -467,10 +472,6 @@ public class Instrument implements Serializable{
 	 */
 	public String toString(){
 		return tickerSymbol;
-	}
-	
-	public int findIndex(Order order){
-		return bookEngine.findIndex(order);
 	}
 	
 }

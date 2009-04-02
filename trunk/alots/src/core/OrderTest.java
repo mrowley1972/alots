@@ -9,11 +9,13 @@ public class OrderTest {
 	
 	Instrument instrument;
 	BlockingQueue<Order> queue = new LinkedBlockingQueue<Order>();
+	BlockingQueue<TAQNotification> notifications = new LinkedBlockingQueue<TAQNotification>();
+
 	Order order;
 	
 	@BeforeClass
 	public void setUp(){
-		instrument = new Instrument("GOOG", queue);
+		instrument = new Instrument("GOOG", queue, notifications);
 		order = new Order(1, instrument, core.Order.Side.BUY, core.Order.Type.LIMIT, 200, 15);
 	}
 	

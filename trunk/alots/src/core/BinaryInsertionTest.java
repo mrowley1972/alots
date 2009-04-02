@@ -12,12 +12,14 @@ public class BinaryInsertionTest {
 	
 	Instrument instrument;
 	BlockingQueue<Order> queue = new LinkedBlockingQueue<Order>();
+	BlockingQueue<TAQNotification> notifications = new LinkedBlockingQueue<TAQNotification>();
+
 	Order bOrder, bOrder2, bOrder3, bOrder4, bOrder5;
 	Order sOrder, sOrder2, sOrder3, sOrder4, sOrder5;
 	
 	@BeforeClass
 	public void setUp(){
-		instrument = new Instrument("GOOG", queue);
+		instrument = new Instrument("GOOG", queue, notifications);
 	}
 	
 	@Test
@@ -26,17 +28,12 @@ public class BinaryInsertionTest {
 		bOrder2 = new Order(2, instrument, core.Order.Side.BUY, core.Order.Type.LIMIT, 5000, 24.0600);
 		bOrder3 = new Order(3, instrument, core.Order.Side.BUY, core.Order.Type.LIMIT, 6000, 24.0610);
 		bOrder4 = new Order(1, instrument, core.Order.Side.BUY, core.Order.Type.LIMIT, 1100, 24.0550);
-		
 		bOrder5 = new Order(3, instrument, core.Order.Side.BUY, core.Order.Type.LIMIT, 100, 24.0600);
 		
 		instrument.insertBuyOrder(bOrder);
-		
 		instrument.insertBuyOrder(bOrder2);
-		
 		instrument.insertBuyOrder(bOrder3);
-		
 		instrument.insertBuyOrder(bOrder4);
-		
 		instrument.insertBuyOrder(bOrder5);
 	}
 	
