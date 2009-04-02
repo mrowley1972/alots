@@ -24,12 +24,13 @@ public class TAQNotificationEngine implements Runnable{
 								
 				ArrayList<Notifiable> clients = instrumentSubscribers.get(ticker);
 				
-				if(notification.getType() == TAQNotification.Type.TRADE){
+				//need to make sure that this instrument has some client subscribed to it
+				if(notification.getType() == TAQNotification.Type.TRADE && clients != null){
 					for(Notifiable client : clients){
 						client.notifyTrade(ticker, notification.getTime(), notification.getSide(), notification.getPrice(), notification.getQuantity());
 					}
 				}
-				else
+				if(notification.getType() != TAQNotification.Type.TRADE)
 				{
 					System.out.println("***NOTIFICATIONS ARE OF INVALID TYPE***");
 				}
