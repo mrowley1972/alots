@@ -1,5 +1,6 @@
 package core;
 
+import java.rmi.RemoteException;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.concurrent.BlockingQueue;
@@ -36,9 +37,9 @@ public class TAQNotificationEngine implements Runnable{
 				}
 			}catch(InterruptedException e){
 				e.printStackTrace();
+			}catch(RemoteException e){
+				e.printStackTrace();
 			}
-			
-			
 		}
 	}
 	

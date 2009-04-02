@@ -51,7 +51,7 @@ public class ExchangeSimulator implements IExchangeSimulator{
 	
 	
 	//responsible for processing new orders from order's queue
-	private OrderProcessor orderProcessingEngine;
+	private OrderProcessingEngine orderProcessingEngine;
 	//responsible for notifying clients about any updated orders that belong to them
 	private ClientOrdersNotificationEngine orderNotificationEngine;
 	//responsible for notifying clients of changes to the instruments they subscribed to
@@ -79,7 +79,7 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		taqNotifications = new LinkedBlockingQueue<TAQNotification>();
 		
 		//Initialise all engines and make new threads
-		orderProcessingEngine = new OrderProcessor(submittedOrders);
+		orderProcessingEngine = new OrderProcessingEngine(submittedOrders);
 		orderNotificationEngine = new ClientOrdersNotificationEngine(registeredClients, updatedOrders);
 		taqNotificationEngine = new TAQNotificationEngine(instrumentSubscribers, taqNotifications);
 		op = new Thread(orderProcessingEngine);
@@ -151,7 +151,6 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		}
 	}
 	
-
 	/**
 	 * Subscribe to get TAQ notifications from a particular instrument
 	 * @param client	a remote Notifiable stub (yourself)
