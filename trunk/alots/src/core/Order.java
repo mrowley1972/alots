@@ -7,6 +7,7 @@ package core;
 import common.IOrder;
 
 import java.io.Serializable;
+import java.util.Date;
 import java.util.List;
 import java.util.Vector;
 
@@ -51,9 +52,8 @@ public class Order implements IOrder{
 		}
 		
 		public String toString(){
-			return volume + " @$" + tradePrice;
+			return volume + " @$" + tradePrice + " : " + new Date(tradeTime);
 		}
-		
 	}
 	
 	private final Side side;
@@ -113,7 +113,7 @@ public class Order implements IOrder{
 	//updates order's state
 	//once an order is submitted, it's total volume stays constant, only openQuantity and executedQuantity can change through this method
 	protected void execute(long volume, double price){
-		OrderTrade trade = new OrderTrade(volume, price, System.nanoTime());
+		OrderTrade trade = new OrderTrade(volume, price, System.currentTimeMillis());
 		//everytime an order is executed, a trade takes place, which is recorded
 		trades.add(trade);
 		openQuantity -= volume;

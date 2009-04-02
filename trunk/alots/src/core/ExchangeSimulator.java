@@ -31,27 +31,29 @@ import common.Notifiable;
 
 public class ExchangeSimulator implements IExchangeSimulator{
 
+	//holds all orders that have been submitted by a client
 	private AbstractMap<Integer, ClientOrders> clientOrdersDB;
+	//holds all currently traded instruments
 	private AbstractMap<String, Instrument> registeredInstruments;
 	//holds all submitted, but not yet processed client orders
 	private BlockingQueue<Order> submittedOrders;
-	//holds all updated orders that have been either fully or partially processed
-	//these are pushed to subscribed clients
-	private BlockingQueue<Order> updatedOrders;
+	
 	//holds all clients that have been registered to be notified of their orders
 	private AbstractMap<Integer, Notifiable> registeredClients;
 	
+	//holds all updated orders that have been either fully or partially processed
+	//these are pushed to subscribed clients
+	private BlockingQueue<Order> updatedOrders;
 	//holds subscriptions to specific instruments
 	private AbstractMap<String, ArrayList<Notifiable>> instrumentSubscribers;
 	//holds notifications to be communicated to clients
 	private BlockingQueue<TAQNotification> taqNotifications;
-	//state of the stock exchange
-	private boolean started = false;
+	
 	
 	//responsible for processing new orders from order's queue
 	private OrderProcessor orderProcessingEngine;
 	//responsible for notifying clients about any updated orders that belong to them
-	private ClientOrdersNotificationEngine ordersNotificationEngine;
+	private ClientOrdersNotificationEngine orderNotificationEngine;
 	//responsible for notifying clients of changes to the instruments they subscribed to
 	private TAQNotificationEngine taqNotificationEngine;
 	
@@ -59,6 +61,9 @@ public class ExchangeSimulator implements IExchangeSimulator{
 	private Thread cn;
 	private Thread ne;
 	private static int nextClientID = 0;
+	
+	//state of the stock exchange
+	private boolean started = false;
 	
 	/**
 	 * Creates a <code>StockExchange</code> with default implementation
@@ -75,23 +80,11 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		
 		//Initialise all engines and make new threads
 		orderProcessingEngine = new OrderProcessor(submittedOrders);
-		ordersNotificationEngine = new ClientOrdersNotificationEngine(registeredClients, updatedOrders);
+		orderNotificationEngine = new ClientOrdersNotificationEngine(registeredClients, updatedOrders);
 		taqNotificationEngine = new TAQNotificationEngine(instrumentSubscribers, taqNotifications);
 		op = new Thread(orderProcessingEngine);
-		cn = new Thread(ordersNotificationEngine);
+		cn = new Thread(orderNotificationEngine);
 		ne = new Thread(taqNotificationEngine);
-	}
-	
-	protected int generateClientID(){
-		return ExchangeSimulator.nextClientID +=7;
-	}
-	
-	//The very first method that client must call to obtain correct clientID and be registered for notifications
-	public int register(Notifiable client){
-		//Generate unique clientID and record for future notifications
-		Integer clientID = generateClientID();
-		registeredClients.put(clientID, client);
-		return clientID.intValue();
 	}
 	
 	/**
@@ -105,6 +98,7 @@ public class ExchangeSimulator implements IExchangeSimulator{
 			ne.start();
 		}
 	}
+	
 	/**
 	 * Stop the exchange.
 	 */
@@ -120,6 +114,7 @@ public class ExchangeSimulator implements IExchangeSimulator{
 			e.printStackTrace();
 		}
 	}
+	
 	/**
 	 * Check whether the exchange is open
 	 * @return true if the exchange is operating, false otherwise
@@ -127,6 +122,21 @@ public class ExchangeSimulator implements IExchangeSimulator{
 	public boolean isOpen(){
 		return started;
 	}
+	
+	//client ids aren't sequential to avoid trivial guessing by other traders
+	protected int generateClientID(){
+		return ExchangeSimulator.nextClientID +=7;
+	}
+	
+	//The very first method that client must call to obtain correct clientID and be registered for notifications
+	public int register(Notifiable client){
+		//Generate unique clientID and record for future notifications
+		Integer clientID = generateClientID();
+		registeredClients.put(clientID, client);
+		return clientID.intValue();
+	}
+	
+
 	
 	/**
 	 * Create an instrument to be traded on the exchange. If the instrument is already being traded, new instrument is not created.
@@ -159,7 +169,9 @@ public class ExchangeSimulator implements IExchangeSimulator{
 			if(!(instrumentSubscribers.get(instrument.getTickerSymbol()).contains(client))){
 				instrumentSubscribers.get(instrument.getTickerSymbol()).add(client);
 			}
-		}else{
+		}
+		//no one has subscribed to this instrument previously, make new entry
+		else{
 			ArrayList<Notifiable> list = new ArrayList<Notifiable>();
 			list.add(client);
 			instrumentSubscribers.put(instrument.getTickerSymbol(), list);

@@ -163,7 +163,9 @@ public class EquityBookEngine implements BookEngine {
 		*/
 	}
 	
-	protected int findIndex(Order order){
+	//finds an index where to insert this order. BinarySearch is used, but the order must never be found, as every
+	//new order is unique - hence, we only look for a correct index
+	private int findIndex(Order order){
 		
 		//this returns (-insertion point -1), where insertion point is the needed index
 		int i = Collections.binarySearch(bidLimitOrders, order, new PriceTimePriorityComparator());
@@ -217,6 +219,7 @@ public class EquityBookEngine implements BookEngine {
 					TAQNotification notification = new TAQNotification(TAQNotification.Type.TRADE, instrument.getTickerSymbol(), 
 							System.currentTimeMillis(), price, quantity, Order.Side.SELL);
 					notifications.add(notification);
+					System.out.println("Notification added: " + notification);
 				
 				}
 				//need to break to avoid going through the whole book, as it is ordered
