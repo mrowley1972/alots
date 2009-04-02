@@ -13,7 +13,8 @@ public interface Notifiable extends Remote{
 
 	public void notifyOrder(long orderID, double price, double quantity) throws RemoteException;
 	
-	public void notifyTrade(String ticker, long time, Order.Side side, double price, double quantity);
+	public void notifyTrade(String ticker, long time, Order.Side side, double price, double quantity) 
+				throws RemoteException;
 	
-	//Notification of last price
+	
 }

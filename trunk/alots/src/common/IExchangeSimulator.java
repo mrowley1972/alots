@@ -28,6 +28,22 @@ public interface IExchangeSimulator extends Remote {
 	void registerInstrument(String tickerSymbol) throws RemoteException;
 	
 	/**
+	 * Subscribe to get TAQ notifications from a particular instrument
+	 * @param client	a remote Notifiable stub (yourself)
+	 * @param ticker	a valid traded instrument's ticker symbol to be subscribed to
+	 * @exception IllegalArgumentException if parameters do not comply
+	 */
+	void subscribeToInstrument(Notifiable client, String ticker) throws RemoteException;
+	
+	/**
+	 * Unsubscribe from getting notifications about an instrument
+	 * @param client	a remote Notifiable stub (yourself)
+	 * @param ticker	a valid traded instrument's ticker symbol to be unsubscribed from
+	 * @exception IllegalArgumentException if parameters do not comply
+	 */
+	void unsubscribeFromInstrument(Notifiable client, String ticker) throws RemoteException;
+	
+	/**
 	 * Submit an order to the exchange to be traded
 	 * @param tickerSymbol  a valid traded instrument's ticker symbol
 	 * @param side 			either BUY or SELL

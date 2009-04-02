@@ -4,6 +4,7 @@ package client;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.Date;
 import java.util.List;
 
 import common.Notifiable;
@@ -35,7 +36,7 @@ public class Client implements Notifiable{
 	}
 	
 	public void notifyTrade(String ticker, long time, Order.Side side, double price, double quantity){
-		System.out.println("Received instrument notification: " + ticker + "; time: " + time + "; side: " + side + 
+		System.out.println("Received instrument notification: " + ticker + "; time: " + new Date(time) + "; side: " + side + 
 				"; price: " + price + "; quantity: " + quantity);
 	}
 	
@@ -86,34 +87,47 @@ public class Client implements Notifiable{
 			//Register an instrument to be traded
 			String msft = "MSFT";
 			exchange.registerInstrument(msft);
+			exchange.subscribeToInstrument(stub, msft);
+			System.out.println("Subscribed to " + msft);
+			
 			System.out.println("Traded instruments " + exchange.getTradedInstrumentsList().toString());
 			
 			//Issue some buy orders
-			System.out.println(exchange.submitOrder(msft, client.getClientID(), "buy", "limit", 20.8, 500));
-			System.out.println(exchange.submitOrder(msft, client.getClientID(), "buy", "limit", 21.8, 1000));
-			System.out.println(exchange.submitOrder(msft, client.getClientID(), "buy", "limit", 20.5, 500));
-			System.out.println(exchange.submitOrder(msft, client.getClientID(), "buy", "limit", 20.8, 500));
+			System.out.println("Issuing buy orders...");
+			System.out.println("Order: " + exchange.submitOrder(msft, client.getClientID(), "buy", "limit", 20.8, 500));
+			System.out.println("Order: " + exchange.submitOrder(msft, client.getClientID(), "buy", "limit", 21.8, 1000));
+			System.out.println("Order: " + exchange.submitOrder(msft, client.getClientID(), "buy", "limit", 20.5, 500));
+			System.out.println("Order: " + exchange.submitOrder(msft, client.getClientID(), "buy", "limit", 20.8, 500));
+			
+			
 			
 			//Issue some sell orders
-			System.out.println(exchange.submitOrder(msft, client.getClientID(), "sell", "limit", 20.0, 1000));
-			System.out.println(exchange.submitOrder(msft, client.getClientID(), "sell", "limit", 22.5, 2000));
-			System.out.println(exchange.submitOrder(msft, client.getClientID(), "sell", "market", 0.0, 200));
+			//System.out.println("Issuing sell orders...");
+			//System.out.println("Order: " + exchange.submitOrder(msft, client.getClientID(), "sell", "limit", 20.0, 1000));
+			//System.out.println("Order: " + exchange.submitOrder(msft, client.getClientID(), "sell", "limit", 22.5, 2000));
+			//System.out.println("Order: " + exchange.submitOrder(msft, client.getClientID(), "sell", "market", 0.0, 200));
 			
 			System.out.println("Best bid: " + exchange.getInstrumentBestBid(msft));
-			System.out.println("Best ask: " + exchange.getInstrumentBestAsk(msft));
+			//System.out.println("Best ask: " + exchange.getInstrumentBestAsk(msft));
 			System.out.println("Last price: " + exchange.getInstrumentLastPrice(msft));
 			System.out.println("Bid volume: " + exchange.getInstrumentBidVolume(msft));
-			System.out.println("Ask volume: " + exchange.getInstrumentAskVolume(msft));
+			//System.out.println("Ask volume: " + exchange.getInstrumentAskVolume(msft));
 			System.out.println("Buy volume: " + exchange.getInstrumentBuyVolume(msft));
-			System.out.println("Sell volume: " + exchange.getInstrumentSellVolume(msft));
-			System.out.println("Average buy price: " + exchange.getInstrumentAverageBuyPrice(msft));
-			System.out.println("Average sell price: " + exchange.getInstrumentAverageSellPrice(msft));
+			//System.out.println("Sell volume: " + exchange.getInstrumentSellVolume(msft));
+			//System.out.println("Average buy price: " + exchange.getInstrumentAverageBuyPrice(msft));
+			//System.out.println("Average sell price: " + exchange.getInstrumentAverageSellPrice(msft));
 			System.out.println("Bid price at depth 1: " + exchange.getInstrumentBidPriceAtDepth(msft, 1));
-			System.out.println("Ask price at depth 0: " + exchange.getInstrumentAskPriceAtDepth(msft, 0));
+			//System.out.println("Ask price at depth 0: " + exchange.getInstrumentAskPriceAtDepth(msft, 0));
 			
-			System.out.println("Cancelled order: " + exchange.cancelOrder(client.getClientID(), 10005).toString());
+			//System.out.println("Cancelled order: " + exchange.cancelOrder(client.getClientID(), 10005).toString());
 			
-			System.out.println("One of my orders is: " + exchange.getClientOrder(client.getClientID(), 10004));
+			//System.out.println("One of my orders is: " + exchange.getClientOrder(client.getClientID(), 10004));
+			
+			//Issue some sell orders
+			System.out.println("Issuing sell orders...");
+			System.out.println("Order: " + exchange.submitOrder(msft, client.getClientID(), "sell", "limit", 20.0, 1000));
+			System.out.println("Order: " + exchange.submitOrder(msft, client.getClientID(), "sell", "limit", 22.5, 2000));
+			System.out.println("Order: " + exchange.submitOrder(msft, client.getClientID(), "sell", "market", 0.0, 200));
 			
 		}
 		catch(Exception e){

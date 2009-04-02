@@ -10,17 +10,17 @@ import java.util.concurrent.BlockingQueue;
  * 
  */
 
-public class OrderProcessor implements Runnable {
+public class OrderProcessingEngine implements Runnable {
 
-	private BlockingQueue<Order> orders;
-	public OrderProcessor(BlockingQueue<Order> orders){
-		this.orders = orders;
+	private BlockingQueue<Order> submittedOrders;
+	public OrderProcessingEngine(BlockingQueue<Order> orders){
+		this.submittedOrders = orders;
 	}
 	
 	public void run(){
 		while(true){
 			try{
-				Order order = orders.take();
+				Order order = submittedOrders.take();
 				order.getInstrument().processNewOrder(order);
 			}
 			catch(InterruptedException e){
