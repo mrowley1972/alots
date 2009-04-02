@@ -7,9 +7,13 @@ package common;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 
+import core.Order;
+
 public interface Notifiable extends Remote{
 
-	public void notify(long orderID) throws RemoteException;
+	public void notifyOrder(long orderID, double price, double quantity) throws RemoteException;
+	
+	public void notifyTrade(String ticker, long time, Order.Side side, double price, double quantity);
 	
 	//Notification of last price
 }

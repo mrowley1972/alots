@@ -11,7 +11,9 @@ public class OrderBookPerformanceTest {
 	public static void main(String[] args) {
 
 		BlockingQueue<Order> queue = new LinkedBlockingQueue<Order>();
-		Instrument instrument = new Instrument("MSFT", queue);
+
+		BlockingQueue<TAQNotification> notifications = new LinkedBlockingQueue<TAQNotification>();
+		Instrument instrument = new Instrument("MSFT", queue, notifications);
 		
 		// simulation step
 

@@ -19,8 +19,8 @@ public class ExchangeSimulatorTest {
 	public void verifyClientIDGeneration(){
 		int clientID1 = exchange.generateClientID();
 		int clientID2 = exchange.generateClientID();
-		Assert.assertEquals(clientID1, 1);
-		Assert.assertEquals(clientID2, 2);	
+		Assert.assertEquals(clientID1, 7);
+		Assert.assertEquals(clientID2, 14);	
 	}
 	
 	@Test

@@ -12,12 +12,13 @@ public class InstrumentTest {
 
 	Instrument instrument;
 	BlockingQueue<Order> queue = new LinkedBlockingQueue<Order>();
+	BlockingQueue<TAQNotification> notifications = new LinkedBlockingQueue<TAQNotification>();
 	Order bOrder, bOrder2, bOrder3, bOrder4, bOrder5;
 	Order sOrder, sOrder2, sOrder3, sOrder4, sOrder5;
 	
 	@BeforeClass
 	public void setUp(){
-		instrument = new Instrument("MSFT", queue);
+		instrument = new Instrument("MSFT", queue, notifications);
 	}
 	
 	@Test

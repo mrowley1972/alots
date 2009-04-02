@@ -13,7 +13,8 @@ public class ClientOrdersTest {
 	@BeforeClass
 	public void setUp(){
 		clientID = 1;
-		Instrument instrument = new Instrument("MSFT", new LinkedBlockingQueue<Order>());
+		Instrument instrument = new Instrument("MSFT", new LinkedBlockingQueue<Order>(), 
+				new LinkedBlockingQueue<TAQNotification>());
 		order1 = new Order(1, instrument, core.Order.Side.BUY, core.Order.Type.LIMIT, 2000, 24.056);
 		order2 = new Order(2, instrument, core.Order.Side.BUY, core.Order.Type.LIMIT, 2000, 24.056);
 		orders = new ClientOrders(clientID);

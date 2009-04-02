@@ -1,7 +1,6 @@
 package common;
 
 import java.io.Serializable;
-import java.util.Date;
 
 public interface IOrder extends Serializable{
 	
