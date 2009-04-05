@@ -54,7 +54,7 @@ public class TAQNotification {
 	}
 	
 	public String toString(){
-		return "Notification: "+ ticker + " Type: " + type + " Price: " + price + " Quantity: " + quantity + " Side: " + 
+		return ticker + " Type: " + type + " Price: " + price + " Quantity: " + quantity + " Side: " + 
 		side + " Time: " + new Date(time) ;
 	}
 

@@ -1,9 +1,15 @@
 package core;
 
+import java.io.IOException;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.logging.FileHandler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 public class EquityBookEngine implements BookEngine {
 
@@ -15,6 +21,9 @@ public class EquityBookEngine implements BookEngine {
 	private List<Order> partiallyFilledOrders;
 	private BlockingQueue<Order> updatedOrders;
 	private BlockingQueue<TAQNotification> notifications;
+	private static Logger logger;
+	private static FileHandler fileTxt;
+	private static SimpleFormatter formatterTxt;
 	
 	/*
 	 * When BookEngine object is created, it gets access to all Instrument books 
@@ -29,10 +38,29 @@ public class EquityBookEngine implements BookEngine {
 		this.partiallyFilledOrders = partiallyFilledOrders;
 		this.updatedOrders = updatedOrders;
 		this.notifications = notifications;
+		
+		configureLogging("/Users/Asset/exchange/equityBookEngineLog.txt");
+		
+	}
+	
+	private void configureLogging(String logFilePath){
+		logger = Logger.getLogger(EquityBookEngine.class.getName());
+		logger.setLevel(Level.INFO);
+		
+		try{
+			fileTxt = new FileHandler(logFilePath);
+			formatterTxt = new SimpleFormatter();
+			fileTxt.setFormatter(formatterTxt);
+			logger.addHandler(fileTxt);
+			
+		}catch(IOException e){
+			System.out.println("Problem initialising logger for " + EquityBookEngine.class.getName());
+		}
 	}
 	
 	public Order processCancelOrder(Order order){
 		Order o;
+		
 		if(order.side() == core.Order.Side.BUY){
 			Iterator<Order> iter = bidLimitOrders.iterator();
 			while(iter.hasNext()){
@@ -41,11 +69,13 @@ public class EquityBookEngine implements BookEngine {
 					iter.remove();
 					o.cancel();
 					updatedOrders.add(o);
+					logger.info("Cancelled order " + order.getOrderID());
 					return o;
 				}
 			}
 			return null;
 		}
+		
 		if(order.side() == core.Order.Side.SELL){
 			Iterator<Order> iter = askLimitOrders.iterator();
 			while(iter.hasNext()){
@@ -54,6 +84,7 @@ public class EquityBookEngine implements BookEngine {
 					iter.remove();
 					o.cancel();
 					updatedOrders.add(o);
+					logger.info("Cancelled order " + order.getOrderID());
 					return o;
 				}
 			}
@@ -113,10 +144,13 @@ public class EquityBookEngine implements BookEngine {
 	
 	public void insertBuyOrder(Order order){
 		order.getInstrument().updateBidVolume(order.getOpenQuantity());
-		
 		int i = findIndex(order);	
-		bidLimitOrders.add(i, order);
 		
+		bidLimitOrders.add(i, order);
+		logger.info("Order " + order.getOrderID() + " inserted into bid book");
+		
+		
+		//if something goes wrong with binarySearch method, can use this commented out linear search algorithm - much slower version
 			/*
 			int i;
 			double price = order.getPrice();
@@ -141,7 +175,10 @@ public class EquityBookEngine implements BookEngine {
 	public void insertSellOrder(Order order){
 		order.getInstrument().updateAskVolume(order.getOpenQuantity());
 		int i = findIndex(order);
+		
 		askLimitOrders.add(i, order);
+		logger.info("Order " + order.getOrderID() + " inserted into ask book");
+		
 		
 		/*
 		int i;
@@ -194,6 +231,7 @@ public class EquityBookEngine implements BookEngine {
 					//update order states and set instrument's last price
 					curOrder.execute(quantity, price);
 					order.execute(quantity, price);
+					long time = System.currentTimeMillis();
 					
 					addToPartiallyFilledOrders(order);
 					
@@ -212,15 +250,16 @@ public class EquityBookEngine implements BookEngine {
 					instrument.updateAveragePrice(quantity, price);
 					instrument.updateAverageSellPrice(quantity, price);
 					 
+					logger.info("Matched order " + order.getOrderID() + "; quantity: " + quantity + "; price " + price + " @ " + new Date(time));
 					//put into pushing queue for client notifications of both orders
 					updatedOrders.add(order); updatedOrders.add(curOrder);
 					
 					//create new TAQNotification object about this trade
 					TAQNotification notification = new TAQNotification(TAQNotification.Type.TRADE, instrument.getTickerSymbol(), 
-							System.currentTimeMillis(), price, quantity, Order.Side.SELL);
+							time, price, quantity, Order.Side.SELL);
 					notifications.add(notification);
-					System.out.println("Notification added: " + notification);
-				
+					
+					logger.info("Trade notification generated @ " + new Date(time));
 				}
 				//need to break to avoid going through the whole book, as it is ordered
 				else{
@@ -256,6 +295,7 @@ public class EquityBookEngine implements BookEngine {
 					//update order states and set instrument's last price
 					curOrder.execute(quantity, price);
 					order.execute(quantity, price);
+					long time = System.currentTimeMillis();
 					
 					if(curOrder.isFilled()){
 						iter.remove();
@@ -272,14 +312,17 @@ public class EquityBookEngine implements BookEngine {
 					instrument.updateAveragePrice(quantity, price);
 					instrument.updateAverageBuyPrice(quantity, price);
 					
+					logger.info("Matched order " + order.getOrderID() + "; quantity: " + quantity + "; price " + price + " @ " + new Date(time));
+					
 					//put into pushing queue for client notifications of both orders
 					updatedOrders.add(order); updatedOrders.add(curOrder);
 					
 					//create new TAQNotification about this trade
 					TAQNotification notification = new TAQNotification(TAQNotification.Type.TRADE, instrument.getTickerSymbol(), 
-							System.currentTimeMillis(), price, quantity, Order.Side.BUY);
+							time, price, quantity, Order.Side.BUY);
 					notifications.add(notification);
 					
+					logger.info("Trade notification generated @ " + new Date(time));
 				} 
 				//need to break to avoid going through the whole book as it is ordered
 				else{

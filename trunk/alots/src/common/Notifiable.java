@@ -16,5 +16,5 @@ public interface Notifiable extends Remote{
 	public void notifyTrade(String ticker, long time, Order.Side side, double price, double quantity) 
 				throws RemoteException;
 	
-	
+	public int getClientID() throws RemoteException;
 }

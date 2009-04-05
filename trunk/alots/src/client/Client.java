@@ -31,12 +31,12 @@ public class Client implements Notifiable{
 	//This method needs to have functionality for accepting updates about orders
 	
 	public void notifyOrder(long orderID, double price, double quantity){
-		System.out.println("Received notification for order: " + orderID + "; average executed price: " + price +
+		System.out.println("Order notification: " + orderID + "; average executed price: " + price +
 				"; executed quantity: " + quantity);
 	}
 	
 	public void notifyTrade(String ticker, long time, Order.Side side, double price, double quantity){
-		System.out.println("Received instrument notification: " + ticker + "; time: " + new Date(time) + "; side: " + side + 
+		System.out.println("Instrument notification: " + ticker + "; time: " + new Date(time) + "; side: " + side + 
 				"; price: " + price + "; quantity: " + quantity);
 	}
 	
@@ -56,7 +56,7 @@ public class Client implements Notifiable{
 		}
 	}
 	
-	
+
 	public static void main(String args[]){
 		
 		if(args.length < 2){
@@ -99,29 +99,12 @@ public class Client implements Notifiable{
 			System.out.println("Order: " + exchange.submitOrder(msft, client.getClientID(), "buy", "limit", 20.5, 500));
 			System.out.println("Order: " + exchange.submitOrder(msft, client.getClientID(), "buy", "limit", 20.8, 500));
 			
+			Thread.sleep(100);
 			
-			
-			//Issue some sell orders
-			//System.out.println("Issuing sell orders...");
-			//System.out.println("Order: " + exchange.submitOrder(msft, client.getClientID(), "sell", "limit", 20.0, 1000));
-			//System.out.println("Order: " + exchange.submitOrder(msft, client.getClientID(), "sell", "limit", 22.5, 2000));
-			//System.out.println("Order: " + exchange.submitOrder(msft, client.getClientID(), "sell", "market", 0.0, 200));
-			
-			System.out.println("Best bid: " + exchange.getInstrumentBestBid(msft));
-			//System.out.println("Best ask: " + exchange.getInstrumentBestAsk(msft));
-			System.out.println("Last price: " + exchange.getInstrumentLastPrice(msft));
+			System.out.println("Best bid: " + exchange.getInstrumentBestBid(msft));	
 			System.out.println("Bid volume: " + exchange.getInstrumentBidVolume(msft));
-			//System.out.println("Ask volume: " + exchange.getInstrumentAskVolume(msft));
-			System.out.println("Buy volume: " + exchange.getInstrumentBuyVolume(msft));
-			//System.out.println("Sell volume: " + exchange.getInstrumentSellVolume(msft));
-			//System.out.println("Average buy price: " + exchange.getInstrumentAverageBuyPrice(msft));
-			//System.out.println("Average sell price: " + exchange.getInstrumentAverageSellPrice(msft));
+			System.out.println("Bid price at depth 0: " + exchange.getInstrumentBidPriceAtDepth(msft, 0));
 			System.out.println("Bid price at depth 1: " + exchange.getInstrumentBidPriceAtDepth(msft, 1));
-			//System.out.println("Ask price at depth 0: " + exchange.getInstrumentAskPriceAtDepth(msft, 0));
-			
-			//System.out.println("Cancelled order: " + exchange.cancelOrder(client.getClientID(), 10005).toString());
-			
-			//System.out.println("One of my orders is: " + exchange.getClientOrder(client.getClientID(), 10004));
 			
 			//Issue some sell orders
 			System.out.println("Issuing sell orders...");
@@ -129,6 +112,17 @@ public class Client implements Notifiable{
 			System.out.println("Order: " + exchange.submitOrder(msft, client.getClientID(), "sell", "limit", 22.5, 2000));
 			System.out.println("Order: " + exchange.submitOrder(msft, client.getClientID(), "sell", "market", 0.0, 200));
 			
+			Thread.sleep(100);
+			
+			System.out.println("Best ask: " + exchange.getInstrumentBestAsk(msft));
+			System.out.println("Last price: " + exchange.getInstrumentLastPrice(msft));
+			System.out.println("Ask volume: " + exchange.getInstrumentAskVolume(msft));
+			System.out.println("Buy volume: " + exchange.getInstrumentBuyVolume(msft));
+			System.out.println("Sell volume: " + exchange.getInstrumentSellVolume(msft));
+			System.out.println("Average buy price: " + exchange.getInstrumentAverageBuyPrice(msft));
+			System.out.println("Average sell price: " + exchange.getInstrumentAverageSellPrice(msft));
+			
+			System.out.println("Ask price at depth 0: " + exchange.getInstrumentAskPriceAtDepth(msft, 0));
 		}
 		catch(Exception e){
 			System.out.println("Client Exception:");

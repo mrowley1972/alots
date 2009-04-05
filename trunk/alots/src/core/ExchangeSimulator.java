@@ -13,7 +13,9 @@
 
 package core;
 
+import java.io.IOException;
 import java.rmi.RMISecurityManager;
+import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
@@ -24,6 +26,7 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.logging.*;
 
 import common.IExchangeSimulator;
 import common.IOrder;
@@ -65,6 +68,11 @@ public class ExchangeSimulator implements IExchangeSimulator{
 	//state of the stock exchange
 	private boolean started = false;
 	
+	private static Logger logger;
+	private static FileHandler fileTxt;
+	private static SimpleFormatter formatterTxt;
+	
+	
 	/**
 	 * Creates a <code>StockExchange</code> with default implementation
 	 */
@@ -85,6 +93,10 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		op = new Thread(orderProcessingEngine);
 		cn = new Thread(orderNotificationEngine);
 		ne = new Thread(taqNotificationEngine);
+		
+		//configure logging by specifying fully qualified path and file's name
+		configureLogging("/Users/Asset/exchange/exchangeLog.txt");
+		
 	}
 	
 	/**
@@ -96,6 +108,8 @@ public class ExchangeSimulator implements IExchangeSimulator{
 			op.start();
 			cn.start();
 			ne.start();
+			
+			logger.info("Exchange Simulator started... logging system is running...");
 		}
 	}
 	
@@ -107,7 +121,12 @@ public class ExchangeSimulator implements IExchangeSimulator{
 			op.join(1000);
 			submittedOrders.clear();
 			clientOrdersDB.clear();
+			taqNotifications.clear();
+			registeredClients.clear();
 			started = false;
+			
+			logger.info("Exchange Simulator is stopped... terminating...");
+			System.exit(0);
 		}
 		catch(InterruptedException e){
 			System.out.println("STOP EXCEPTION: " + e.getMessage());
@@ -128,11 +147,30 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		return ExchangeSimulator.nextClientID +=7;
 	}
 	
+	private void configureLogging(String logFilePath) {
+		
+		logger = Logger.getLogger(ExchangeSimulator.class.getName());
+		logger.setLevel(Level.INFO);
+		try{
+			fileTxt = new FileHandler(logFilePath);
+			formatterTxt = new SimpleFormatter();
+			fileTxt.setFormatter(formatterTxt);
+			logger.addHandler(fileTxt);
+	
+		}catch(IOException e){
+			System.out.println("Problem initialising logger...");
+			e.printStackTrace();
+		}
+	}
+	
 	//The very first method that client must call to obtain correct clientID and be registered for notifications
 	public int register(Notifiable client){
 		//Generate unique clientID and record for future notifications
 		Integer clientID = generateClientID();
 		registeredClients.put(clientID, client);
+		
+		logger.info("New client has registered with the exchange. ClientID: " + clientID);
+		
 		return clientID.intValue();
 	}
 	
@@ -149,6 +187,7 @@ public class ExchangeSimulator implements IExchangeSimulator{
 			instrument = new Instrument(ticker, updatedOrders, taqNotifications);
 			registeredInstruments.put(ticker.toUpperCase(), instrument);
 		}
+		logger.info("New instrument registered: " + instrument.getTickerSymbol());
 	}
 	
 	/**
@@ -174,7 +213,14 @@ public class ExchangeSimulator implements IExchangeSimulator{
 			ArrayList<Notifiable> list = new ArrayList<Notifiable>();
 			list.add(client);
 			instrumentSubscribers.put(instrument.getTickerSymbol(), list);
-		}		
+		}	
+		
+		try{
+			logger.info("clientID: " + client.getClientID() + " subscribed for notifications for " + instrument.getTickerSymbol());
+		}catch(RemoteException e){
+			logger.warning("Communication with a client is corrupted..." + "\n" + e.getStackTrace().toString());
+		}
+		
 	}
 	
 	/**
@@ -192,6 +238,12 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		if(instrumentSubscribers.containsKey(instrument.getTickerSymbol())){
 			if(instrumentSubscribers.get(instrument.getTickerSymbol()).contains(client))
 				instrumentSubscribers.get(instrument.getTickerSymbol()).remove(client);
+		}
+		try{
+			logger.info("clientID: " + client.getClientID() + " unsubscribed from notifications for " +
+					instrument.getTickerSymbol());
+		}catch(RemoteException e){
+			logger.warning("Communication with a client is corrupted..." + "\n" + e.getStackTrace().toString());
 		}
 	}
 	
@@ -249,9 +301,9 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		
 		//finally process this order and return the object
 		processOrder(order);
-		//return of a unique orderID indicates a confirmation that an order has been submitted.
-		System.out.println("Order " + order.getOrderID() + " has been submitted");
+		logger.info("Order " + order.getOrderID() + " is submitted by client " + clientID);
 		
+		//return of a unique orderID indicates a confirmation that an order has been submitted.
 		return order.getOrderID();
 	}
 	
@@ -259,10 +311,10 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		//add the order to the processing queue
 		try{
 			submittedOrders.put(order);
+			logger.info("Submitted order " + order.getOrderID());
 		}
 		catch(InterruptedException e){
-			System.out.println("ORDER QUEUE EXCEPTION: " + e.getMessage());
-			e.printStackTrace();
+			logger.warning("ORDER QUEUE EXCEPTION " + e.getMessage() + "\n" + e.getStackTrace().toString());
 		}
 	}
 	
@@ -273,11 +325,11 @@ public class ExchangeSimulator implements IExchangeSimulator{
 	 * @param 	orderID   one of orderIDs that this client has for own orders
 	 * @return 	an order object that was requested to be cancelled, <code>null</code> if the order does not exist, does not belong
 	 *  to this client or has already been filled (specific reason is hard to trace back).
-	 * @exception MarketsClosedException if the market is not currently opened
 	 */
 	public synchronized IOrder cancelOrder(int clientID, long orderID){
 		Order order = clientOrdersDB.get(clientID).findOrder(orderID);
 		if(order != null){
+			logger.info("client " + clientID + " cancelled order " + orderID);
 			return order.getInstrument().processCancelOrder(order);
 		}
 		return null;
@@ -343,6 +395,8 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
+		
+		logger.info("Last price for " + instrument.getTickerSymbol() + " is requested");
 		return instrument.getLastPrice();
 	}
 	
@@ -356,6 +410,8 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
+		
+		logger.info("Bid volume for " + instrument.getTickerSymbol() + " is requested");
 		return instrument.getBidVolume();
 	}
 	
@@ -369,6 +425,8 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
+		
+		logger.info("Ask volume for " + instrument.getTickerSymbol() + " is requested");
 		return instrument.getAskVolume();
 	}
 	
@@ -382,6 +440,8 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
+		
+		logger.info("Buy volume for " + instrument.getTickerSymbol() + " is requsted");
 		return instrument.getBuyVolume();
 	}
 	
@@ -395,6 +455,8 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
+		
+		logger.info("Sell volume for " + instrument.getTickerSymbol() + " is requested");
 		return instrument.getSellVolume();
 	}
 	
@@ -409,6 +471,8 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
+		
+		logger.info("Average price for " + instrument.getTickerSymbol() + " is requested");
 		return instrument.getAveragePrice();
 	}
 	
@@ -423,6 +487,8 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
+		
+		logger.info("Average buy price for " + instrument.getTickerSymbol() + " is requested");
 		return instrument.getAverageBuyPrice();
 	}
 	
@@ -437,6 +503,8 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
+		
+		logger.info("Average sell price for " + instrument.getTickerSymbol() + " is requested");
 		return instrument.getAverageSellPrice();
 	}
 	
@@ -450,6 +518,8 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
+		
+		logger.info("Bid VWAP for " + instrument.getTickerSymbol() + " is requested");
 		return instrument.getBidVWAP();
 	}
 	
@@ -463,6 +533,8 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
+		
+		logger.info("Ask VWAP for " + instrument.getTickerSymbol() + " is requested");
 		return instrument.getAskVWAP();
 	}
 	
@@ -476,6 +548,8 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
+		
+		logger.info("Best bid for " + instrument.getTickerSymbol() + " is requested");
 		return instrument.getBestBid();
 	}
 	
@@ -489,6 +563,8 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
+		
+		logger.info("Best ask for " + instrument.getTickerSymbol() + " is requested");
 		return instrument.getBestAsk();
 	}
 	
@@ -503,6 +579,8 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
+		
+		logger.info("Bid price at depth " + depth + " for " + instrument.getTickerSymbol() + " is requested");		
 		return instrument.getBidPriceAtDepth(depth);
 	}
 	
@@ -517,6 +595,8 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
+		
+		logger.info("Ask price at depth " + depth + " for " + instrument.getTickerSymbol() + " is requested");	
 		return instrument.getAskPriceAtDepth(depth);
 	}
 	
@@ -531,6 +611,8 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
+		
+		logger.info("Ask volume at price " + price + " for " + instrument.getTickerSymbol() + " is requested");
 		return instrument.getAskVolumeAtPrice(price);
 	}
 	
@@ -545,6 +627,8 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
+		
+		logger.info("Bid volume at price " + price + " for " + instrument.getTickerSymbol() + " is requested");
 		return instrument.getBidVolumeAtPrice(price);
 	}
 	
@@ -558,6 +642,8 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
+		
+		logger.info("Bid high for " + instrument.getTickerSymbol() + " is requested");
 		return instrument.getBidHigh();
 	}
 	
@@ -571,6 +657,8 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
+		
+		logger.info("Bid low for " + instrument.getTickerSymbol() + " is requested");
 		return instrument.getBidLow();
 	}
 	
@@ -584,6 +672,8 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
+		
+		logger.info("Ask high for " + instrument.getTickerSymbol() + " is requested");
 		return instrument.getAskHigh();
 	}
 	
@@ -597,6 +687,8 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		Instrument instrument = findInstrument(ticker);
 		if(instrument == null)
 			throw new IllegalArgumentException("Invalid ticker symbol: "+ ticker);
+		
+		logger.info("Ask low for " + instrument.getTickerSymbol() + " is requested");
 		return instrument.getAskLow();
 	}
 	
@@ -656,7 +748,6 @@ public class ExchangeSimulator implements IExchangeSimulator{
 			Registry registry = LocateRegistry.getRegistry(rmiPort);
 			registry.rebind(name, stub);
 			System.out.println("*** Exchange Simulator is up and running on the server ***");
-			
 		}
 		catch(Exception e){
 			System.out.println("ExchangeSimulator exception: ");
