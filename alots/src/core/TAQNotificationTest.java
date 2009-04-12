@@ -25,7 +25,7 @@ public class TAQNotificationTest {
 	public void setUp(){
 		instrument = new Instrument("GOOG", queue, notifications);
 		time = System.currentTimeMillis();
-		notification = new TAQNotification(TAQNotification.Type.TRADE, instrument.getTickerSymbol(), time, 41.24, 2000, Order.Side.SELL);
+		notification = new TAQNotification(TAQNotification.Type.TRADE, instrument.getTicker(), time, 41.24, 2000, Order.Side.SELL);
 		
 	}
 	

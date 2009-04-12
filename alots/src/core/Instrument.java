@@ -1,10 +1,11 @@
 /**
- * A class fully encapsulating properties of a traded exchange instrument. 
+ * This class fully encapsulates properties of a traded exchange instrument. 
  * The class holds four books - bid order, ask order, and two books representing filled and partially 
- * filled orders. These books are not manipulated by this class directly, instead it requires a class implementing 
+ * filled orders. It additionally holds references to updated orders and notifications containers. 
+ * These containers are not manipulated by this class directly, instead it requires a class implementing 
  * <code>BookEngine</code> interface, that makes all of the necessary modifications to these containers. 
- * Clients must not be able to access this object directly, instead delegating calls are made from <code>StockExchange</code> 
- * class for any particular instrument. 
+ * Clients must not be able to access this object directly, instead delegating calls are made from 
+ * <code>ExchangeSimulator</code> class for any particular instrument. 
  * Each instrument does its own matching and order manipulations, without interfering with any other traded instruments.
  * 
  * @author Asset Tarabayev
@@ -17,7 +18,6 @@ import java.util.Vector;
 import java.util.concurrent.BlockingQueue;
 import java.io.Serializable;
 import java.math.*;
-
 import common.IOrder;
 
 public class Instrument implements Serializable{
@@ -68,9 +68,10 @@ public class Instrument implements Serializable{
 	
 	
 	/**
-	 * Creates an <code>Instrument</code> object with its own bid and ask order books, and book processing engine
+	 * Creates an <code>Instrument</code> object with its own bid and ask order books, and books processing engine
 	 * @param tickerSymbol	a valid ticker symbol of an already traded instrument
 	 * @param updatedOrders	an <code>queue</code> where all orders that have been updated are placed
+	 * @param notifications an <code>queue</code> where all instrument TAQ notifications are placed
 	 * @return a fully encapsulated <code>Instrument</code> object
 	 */
 	public Instrument(String tickerSymbol, BlockingQueue<Order> updatedOrders, 
@@ -80,6 +81,7 @@ public class Instrument implements Serializable{
 		askLimitOrders = new Vector<Order>();
 		filledOrders = new Vector<Order>();
 		partiallyFilledOrders = new Vector<Order>();
+		
 		bookEngine = new EquityBookEngine(bidLimitOrders, askLimitOrders, filledOrders, partiallyFilledOrders, 
 				updatedOrders, notifications);
 		
@@ -169,7 +171,7 @@ public class Instrument implements Serializable{
 	 * Get this Instrument's ticker symbol
 	 * @return this instrument's ticker symbol
 	 */
-	protected String getTickerSymbol(){
+	protected String getTicker(){
 		return tickerSymbol;
 	}
 	
@@ -203,7 +205,6 @@ public class Instrument implements Serializable{
 	//bid volume is only updated when a new buy order is inserted, or when matched by a sell order
 	//i.e. it is a volume of the book on the bid side
 	protected void updateBidVolume(long volume){
-		//System.out.println("BID VOLUME UPDATED: " + volume);
 		bidVolume += volume;
 	}
 
@@ -218,7 +219,6 @@ public class Instrument implements Serializable{
 	//ask volume is only updated when a new sell order is inserted, or when matched by a buy order
 	//i.e. it is a volume of the book on the sell side
 	protected void updateAskVolume(long volume){
-		//System.out.println("ASK VOLUME UPDATED: " + volume);
 		askVolume += volume;
 	}
 	
@@ -227,14 +227,12 @@ public class Instrument implements Serializable{
 	 * @return <code>this</code> Instrument's buy volume
 	 */
 	protected long getBuyVolume(){
-		
 		return buyVolume;
 	}
 	
 	//buy volume is only updated when buy order has been matched
 	//i.e. it is a volume of matched buy orders
 	protected void updateBuyVolume(long volume){
-		//System.out.println("BUY VOLUME UPDATED: " + volume);
 		buyVolume += volume;
 	}
 	
@@ -334,8 +332,10 @@ public class Instrument implements Serializable{
 		askVWAP = (new BigDecimal(total_AskQuantityTimesPrice/total_AskQuantity)).setScale(4, RoundingMode.HALF_UP).doubleValue();
 	}
 	
-	/*
-	 * Get bid volume at a specified price
+	/**
+	 * Get this Instrument's bid volume at specific price
+	 * @param price 	price to get volume at
+	 * @return	bid volume at the specified price
 	 */
 	protected long getBidVolumeAtPrice(double price){
 		
@@ -347,12 +347,13 @@ public class Instrument implements Serializable{
 			if(order.getPrice() < price)
 				break;
 		}
-		
 		return volume;
 	}
 	
-	/*
-	 * Get ask volume at a specified price
+	/**
+	 * Get this Instrument's ask volume at specific price
+	 * @param price 	price to get volume at
+	 * @return	ask volume at the specified price
 	 */
 	protected long getAskVolumeAtPrice(double price){
 		long volume = 0;
@@ -365,24 +366,23 @@ public class Instrument implements Serializable{
 		}
 		return volume;
 	}
-	/*
-	 * Get the best bid price from the book.
-	 * 
+	
+	/**
+	 * Get this Instrument's best bid price
+	 * @return this instrument's best bid price
 	 */
 	protected double getBestBid(){
 		return getBestPrice(bidLimitOrders);
 	}
 	
-	/*
-	 * Get the best ask price from the book
+	/**
+	 * Get this Instrument's best ask price
+	 * @return this instrument's best ask price
 	 */
 	protected double getBestAsk(){
 		return getBestPrice(askLimitOrders);
 	}
 	
-	/*
-	 * Get the best price from the book
-	 */
 	private double getBestPrice(List<Order> book){
 		if(book.size() > 0)
 			return book.get(0).getPrice();
@@ -467,9 +467,6 @@ public class Instrument implements Serializable{
 		}
 	}
 	
-	/**
-	 * @return ticker symbol of <code>this</code> Instrument
-	 */
 	public String toString(){
 		return tickerSymbol;
 	}

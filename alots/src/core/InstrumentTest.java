@@ -28,7 +28,7 @@ public class InstrumentTest {
 	
 	@Test
 	public void testInstrumentName(){
-		Assert.assertEquals(instrument.getTickerSymbol(), "MSFT");
+		Assert.assertEquals(instrument.getTicker(), "MSFT");
 	}
 	
 	@Test

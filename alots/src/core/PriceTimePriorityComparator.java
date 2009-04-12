@@ -1,3 +1,11 @@
+/**
+ * This class specifies order in the book for comparing buy and sell orders.
+ * The class is used during insertion stage and returns different comparison order for buy orders and sell orders, 
+ * for descending and ascending insertion respectively.
+ * 
+ * @author Asset Tarabayev
+ */
+
 package core;
 import java.util.*;
 
