@@ -4,6 +4,8 @@
  *  and executed quantity. A client will be notified of the same order if the order has been partially filled multiple times.
  *  It may be possible that some notifications arrive out of order if the communication channel drops some packets.
  *  However, the class implementation guarantees that earlier notifications are sent before the later ones.
+ *  
+ *  @author Asset Tarabayev
  */
 
 package core;

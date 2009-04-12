@@ -1,8 +1,10 @@
 /**
  * This class represents an TAQ Notification, which is based on tagged-value principle.
- * Some fields are only present when the type of the notification is Trade.
+ * Some fields are only present when the type of the notification is a Trade.
  * It is the responsibility of the class using this to check for the type of notification and make appropriate calls
- *  with expectation that some may contain null values
+ *  with expectation that some may contain null values.
+ *  
+ *  @author Asset Tarabayev
  */
 
 package core;

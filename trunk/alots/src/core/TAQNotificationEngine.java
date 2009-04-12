@@ -3,6 +3,8 @@
  * Clients are notified of any trade that takes place for the instrument they are interested in or if the best quote price changes in the order book.
  * It may be possible that some notifications arrive out of order if the communication channel drops some packets.
  * However, the class implementation guarantees that earlier notifications are sent before the later ones.
+ * 
+ * @author Asset Tarabayev
  */
 
 package core;

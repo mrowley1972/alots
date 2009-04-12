@@ -9,6 +9,9 @@ import java.io.Serializable;
  * bidLimitOrders, askLimitOrders, filledOrders and partiallyFilledOrders are all passed to the constructor
  * implementing this interface - there is no way to enforce this in the interface, but any implementing 
  * class must conform to this policy.
+ * Additionally BookEngine gets access to updatedOrders and notification containers, as it populates these with necessary 
+ * updates.
+ * 
  * @author Asset Tarabayev
  *
  */
@@ -33,12 +36,11 @@ public interface BookEngine extends Serializable{
 	 */
 	Order processCancelOrder(Order o);
 	
-	
 	/**
 	 * Insert a valid buy order into one of the order books. This method should be directly used by the 
 	 * <code>processNewOrder(Order o)</code> method during processing of the order. The method should also be used 
 	 * when books need to be populated manually during backfills. During the insertion process, a sorting 
-	 * algorithm depending on the priority must be used to ensure correct order positioning during matching.
+	 * algorithm depending on the insertion priority must be used to ensure correct order positioning during matching.
 	 * @param order an <code>Order</code> object checked against validity in the calling method or class
 	 */
 	void insertBuyOrder(Order o);
@@ -47,11 +49,8 @@ public interface BookEngine extends Serializable{
 	 * Insert a valid sell order into one of the order books. This method should be directly used by the 
 	 * <code>processNewOrder(Order o)</code> method during processing of the order. The method should also be used 
 	 * when books need to be populated manually during backfills. During the insertion process, a sorting 
-	 * algorithm depending on the priority must be used to ensure correct order positioning during matching.
+	 * algorithm depending on the insertion priority must be used to ensure correct order positioning during matching.
 	 * @param order an <code>Order</code> object checked against validity in the calling method or class
 	 */
 	void insertSellOrder(Order o);
-	
-	
-	
 }

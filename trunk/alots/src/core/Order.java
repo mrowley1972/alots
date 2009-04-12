@@ -1,11 +1,12 @@
 package core;
 
 /**
+ * This class holds all of the information about a particular order.
+ * OrderTrade is a private inner class that is used to record all fills that take place on this order.
  * @author Asset Tarabayev
  */
 
 import common.IOrder;
-
 import java.io.Serializable;
 import java.util.Date;
 import java.util.List;

@@ -1,3 +1,12 @@
+/**
+ * This class implements BookEngine interface and is used directly by an Instrument class. 
+ * Orders are only matched at the top of the order book, which is triggered by insertion of a new order. 
+ * This implementation guarantees insertion in O(log(n)) into both ask and bid sides of the book, using binary search index discovery with minor modifications. 
+ * Insertion into the book is based on the price-time priority algorithm.
+ * 
+ * @author Asset Tarabayev
+ */
+
 package core;
 
 import java.io.IOException;
@@ -39,8 +48,10 @@ public class EquityBookEngine implements BookEngine {
 		this.updatedOrders = updatedOrders;
 		this.notifications = notifications;
 		
+		//specify location of the log file
 		configureLogging("/Users/Asset/exchange/equityBookEngineLog.txt");
 		
+		logger.info("Equity Book Engine is up and running...");
 	}
 	
 	private void configureLogging(String logFilePath){
@@ -140,14 +151,13 @@ public class EquityBookEngine implements BookEngine {
 		cleanUpPartiallyFilledOrders();
 	}
 
-	//currently takes O(n) for the insertion in the worst case - need to do in log(n)
-	
+	//guaranteed to perform insertion in O(log(n))
 	public void insertBuyOrder(Order order){
 		order.getInstrument().updateBidVolume(order.getOpenQuantity());
 		int i = findIndex(order);	
 		
 		bidLimitOrders.add(i, order);
-		logger.info("Order " + order.getOrderID() + " inserted into bid book");
+		logger.info("Order " + order.getOrderID() + " inserted into bid order book");
 		
 		
 		//if something goes wrong with binarySearch method, can use this commented out linear search algorithm - much slower version
@@ -170,14 +180,12 @@ public class EquityBookEngine implements BookEngine {
 	*/
 	}
 	
-	
-	
 	public void insertSellOrder(Order order){
 		order.getInstrument().updateAskVolume(order.getOpenQuantity());
 		int i = findIndex(order);
 		
 		askLimitOrders.add(i, order);
-		logger.info("Order " + order.getOrderID() + " inserted into ask book");
+		logger.info("Order " + order.getOrderID() + " inserted into ask order book");
 		
 		
 		/*
@@ -255,7 +263,7 @@ public class EquityBookEngine implements BookEngine {
 					updatedOrders.add(order); updatedOrders.add(curOrder);
 					
 					//create new TAQNotification object about this trade
-					TAQNotification notification = new TAQNotification(TAQNotification.Type.TRADE, instrument.getTickerSymbol(), 
+					TAQNotification notification = new TAQNotification(TAQNotification.Type.TRADE, instrument.getTicker(), 
 							time, price, quantity, Order.Side.SELL);
 					notifications.add(notification);
 					
@@ -265,7 +273,6 @@ public class EquityBookEngine implements BookEngine {
 				else{
 					break;
 				}
-				
 			}
 		}
 	}
@@ -318,7 +325,7 @@ public class EquityBookEngine implements BookEngine {
 					updatedOrders.add(order); updatedOrders.add(curOrder);
 					
 					//create new TAQNotification about this trade
-					TAQNotification notification = new TAQNotification(TAQNotification.Type.TRADE, instrument.getTickerSymbol(), 
+					TAQNotification notification = new TAQNotification(TAQNotification.Type.TRADE, instrument.getTicker(), 
 							time, price, quantity, Order.Side.BUY);
 					notifications.add(notification);
 					
@@ -346,9 +353,7 @@ public class EquityBookEngine implements BookEngine {
 		}
 		
 	}
-	
-	//add to filled orders by removing an object with the same reference
-	//and adding the same object, but with updated internal state
+
 	private void addToFilledOrders(Order order){
 		if(!filledOrders.contains(order))
 			filledOrders.add(order);

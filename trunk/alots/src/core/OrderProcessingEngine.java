@@ -1,6 +1,7 @@
 /**
  * This class is responsible for processing orders from the orders queue in StockExchange.
- * 
+ * The class is implements Runnable interface and should be used as a separate thread in the main ExchangeSimulator class
+ * @author Asset Tarabayev
  */
 
 package core;
