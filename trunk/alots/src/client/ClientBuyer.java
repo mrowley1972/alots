@@ -1,66 +1,43 @@
 /**
- * A simple client, acting as a dealer to test out exchange performance
+ * A sample buyer client to test out exchange performance
  */
 
 package client;
 
-
+import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.Date;
-import java.util.List;
-import common.Notifiable;
 import common.IExchangeSimulator;
-import common.IOrder;
-import core.Order;
+import common.Notifiable;
+import core.Order.Side;
 
-public class Client implements Notifiable{
+public class ClientBuyer implements Notifiable{
 	
 	private int clientID;
-	
-	public int getClientID(){
+
+	public int getClientID() throws RemoteException {
 		return clientID;
 	}
 	
 	public void setClientID(int clientID){
 		this.clientID = clientID;
 	}
-	
-	public Client(){
-		super();
-	}
 
-	//This method needs to have functionality for accepting updates about orders
-	
-	public void notifyOrder(long orderID, double price, double quantity){
+	public void notifyOrder(long orderID, double price, double quantity)
+			throws RemoteException {
 		System.out.println("Order notification: " + orderID + "; average executed price: " + price +
 				"; executed quantity: " + quantity);
 	}
-	
-	public void notifyTrade(String ticker, long time, Order.Side side, double price, double quantity){
+
+	public void notifyTrade(String ticker, long time, Side side, double price,
+			double quantity) throws RemoteException {
 		System.out.println("Instrument notification: " + ticker + "; time: " + new Date(time) + "; side: " + side + 
 				"; price: " + price + "; quantity: " + quantity);
 	}
 	
-	
-	
-	public void printBidBook(List<IOrder> bidLimitOrders){
-		System.out.println("***BID BOOK***");
-		for(IOrder order: bidLimitOrders){
-			System.out.println(order.toString());
-		}
-	}
-	
-	public void printAskBook(List<IOrder> askLimitOrders){
-		System.out.println("***ASK BOOK***");
-		for(IOrder order: askLimitOrders){
-			order.toString();
-		}
-	}
-	
-
-	public static void main(String args[]){
+public static void main(String args[]){
 		
 		if(args.length < 2){
 			System.out.println("Usage: Client <hostname> <rmi_port>");
@@ -69,7 +46,7 @@ public class Client implements Notifiable{
 		
 		String host = args[0];
 		int rmiPort = Integer.parseInt(args[1]);
-		Client client = new Client();
+		ClientBuyer clientBuyer = new ClientBuyer();
 	
 		if(System.getSecurityManager() == null){
 			System.setSecurityManager(new SecurityManager());
@@ -77,30 +54,30 @@ public class Client implements Notifiable{
 		
 		try{
 			//This part is for the exchange to be able to issue order notifications to clients
-			Notifiable stub = (Notifiable)UnicastRemoteObject.exportObject(client, 0);
+			Notifiable stub = (Notifiable)UnicastRemoteObject.exportObject(clientBuyer, 0);
+			
 			//Locate registry on specific port
 			Registry registry = LocateRegistry.getRegistry(host, rmiPort);
+			
 			String name = "ExchangeSimulator";
 			IExchangeSimulator exchange = (IExchangeSimulator)registry.lookup(name);
 			
 			//Initial stage is to register at the exchange
-			client.setClientID(exchange.register(stub));
-			System.out.println("Assigned clientID is " + client.getClientID());
+			clientBuyer.setClientID(exchange.register(stub));
+			System.out.println("Assigned clientID is " + clientBuyer.getClientID());
 			
 			//Register an instrument to be traded
 			String msft = "MSFT";
-			exchange.registerInstrument(msft);
+			
 			exchange.subscribeToInstrument(stub, msft);
 			System.out.println("Subscribed to " + msft);
 			
-			System.out.println("Traded instruments " + exchange.getTradedInstrumentsList().toString());
-			
 			//Issue some buy orders
 			System.out.println("Issuing buy orders...");
-			System.out.println("Order: " + exchange.submitOrder(msft, client.getClientID(), "buy", "limit", 20.8, 500));
-			System.out.println("Order: " + exchange.submitOrder(msft, client.getClientID(), "buy", "limit", 21.8, 1000));
-			System.out.println("Order: " + exchange.submitOrder(msft, client.getClientID(), "buy", "limit", 20.5, 500));
-			System.out.println("Order: " + exchange.submitOrder(msft, client.getClientID(), "buy", "limit", 20.8, 500));
+			System.out.println("Order: " + exchange.submitOrder(msft, clientBuyer.getClientID(), "buy", "market", 0.0, 600));
+			System.out.println("Order: " + exchange.submitOrder(msft, clientBuyer.getClientID(), "buy", "limit", 22.8, 1000));
+			System.out.println("Order: " + exchange.submitOrder(msft, clientBuyer.getClientID(), "buy", "limit", 21.5, 700));
+			System.out.println("Order: " + exchange.submitOrder(msft, clientBuyer.getClientID(), "buy", "limit", 21.8, 900));
 			
 			Thread.sleep(1000);
 			
@@ -108,12 +85,6 @@ public class Client implements Notifiable{
 			System.out.println("Bid volume: " + exchange.getInstrumentBidVolume(msft));
 			System.out.println("Bid price at depth 0: " + exchange.getInstrumentBidPriceAtDepth(msft, 0));
 			System.out.println("Bid price at depth 1: " + exchange.getInstrumentBidPriceAtDepth(msft, 1));
-			
-			//Issue some sell orders
-			System.out.println("Issuing sell orders...");
-			System.out.println("Order: " + exchange.submitOrder(msft, client.getClientID(), "sell", "limit", 20.0, 1000));
-			System.out.println("Order: " + exchange.submitOrder(msft, client.getClientID(), "sell", "limit", 22.5, 2000));
-			System.out.println("Order: " + exchange.submitOrder(msft, client.getClientID(), "sell", "market", 0.0, 200));
 			
 			Thread.sleep(1000);
 			
@@ -132,4 +103,5 @@ public class Client implements Notifiable{
 			e.printStackTrace();
 		}
 	}
+
 }

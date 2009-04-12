@@ -6,6 +6,12 @@ import java.util.concurrent.LinkedBlockingQueue;
 import org.testng.Assert;
 import org.testng.annotations.*;
 
+import core.Instrument;
+import core.Order;
+import core.TAQNotification;
+import core.Order.Side;
+import core.TAQNotification.Type;
+
 public class TAQNotificationTest {
 
 	Instrument instrument;
