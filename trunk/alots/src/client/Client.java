@@ -39,11 +39,14 @@ public class Client implements Notifiable{
 	}
 	
 	public void notifyTrade(String ticker, long time, Order.Side side, double price, double quantity){
-		System.out.println("Instrument notification: " + ticker + "; time: " + new Date(time) + "; side: " + side + 
+		System.out.println("Instrument trade notification: " + ticker + "; time: " + new Date(time) + "; side: " + side + 
 				"; price: " + price + "; quantity: " + quantity);
 	}
 	
-	
+	public void notifyQuote(String ticker, long time, double bidPrice, double askPrice){
+		System.out.println("Instrument quote notification: " + ticker + "; time: " + new Date(time) + "; Bid Price: " +
+				bidPrice + "; Ask Price: " + askPrice);
+	}
 	
 	public void printBidBook(List<IOrder> bidLimitOrders){
 		System.out.println("***BID BOOK***");

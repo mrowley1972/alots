@@ -10,7 +10,7 @@ import core.Instrument;
 import core.Order;
 import core.TAQNotification;
 import core.Order.Side;
-import core.TAQNotification.Type;
+import core.TAQNotification.NotificationType;
 
 public class TAQNotificationTest {
 
@@ -25,7 +25,7 @@ public class TAQNotificationTest {
 	public void setUp(){
 		instrument = new Instrument("GOOG", queue, notifications);
 		time = System.currentTimeMillis();
-		notification = new TAQNotification(TAQNotification.Type.TRADE, instrument.getTicker(), time, 41.24, 2000, Order.Side.SELL);
+		notification = new TAQNotification(TAQNotification.NotificationType.TRADE, instrument.getTicker(), time, 41.24, 2000, Order.Side.SELL);
 		
 	}
 	
@@ -36,7 +36,7 @@ public class TAQNotificationTest {
 	
 	@Test
 	public void testNotificationFormat(){
-		Assert.assertEquals(notification.getType(), TAQNotification.Type.TRADE);
+		Assert.assertEquals(notification.getType(), TAQNotification.NotificationType.TRADE);
 		Assert.assertEquals(notification.getTicker(), "GOOG");
 		Assert.assertEquals(notification.getPrice(), 41.24);
 		Assert.assertEquals(notification.getQuantity(), 2000.0);

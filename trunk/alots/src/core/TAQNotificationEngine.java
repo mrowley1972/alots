@@ -30,21 +30,32 @@ public class TAQNotificationEngine implements Runnable{
 			try{
 				TAQNotification notification = notifications.take();
 				String ticker = notification.getTicker();
+				long time = notification.getTime();
 								
 				ArrayList<Notifiable> clients = instrumentSubscribers.get(ticker);
 				
 				//need to make sure that this instrument has some client subscribed to it
-				if(notification.getType() == TAQNotification.Type.TRADE && clients != null){
+				if(notification.getType() == TAQNotification.NotificationType.TRADE && clients != null){
 					for(Notifiable client : clients){
-						client.notifyTrade(ticker, notification.getTime(), notification.getSide(), notification.getPrice(), notification.getQuantity());
+						client.notifyTrade(ticker, time, notification.getSide(), notification.getPrice(), notification.getQuantity());
 						
-						ExchangeSimulator.logger.info("Notification sent to all subscribers: " + ticker + "; price: " + notification.getPrice() + 
-								"; quantity: " + notification.getQuantity());
+						ExchangeSimulator.logger.info("Trade notification sent to all subscribers: " + ticker + "; price: " + notification.getPrice() + 
+								"; quantity: " + notification.getQuantity() + "; side: " + notification.getSide());
 					}
 				}
-				if(notification.getType() != TAQNotification.Type.TRADE)
+				
+				if(notification.getType() == TAQNotification.NotificationType.QUOTE && clients != null)
 				{
-					System.out.println("***NOTIFICATIONS ARE OF INVALID TYPE***");
+					for(Notifiable client : clients){
+						client.notifyQuote(ticker, time, notification.getBidPrice(), notification.getAskPrice());
+						
+						ExchangeSimulator.logger.info("Quote notification sent to all subscribers: " + ticker + "; bid price: " + notification.getBidPrice() +
+								"; ask price: " + notification.getAskPrice());
+					}
+				}
+				
+				else{
+					System.out.println("*** NOTIFICATION TYPE IS NOT RECOGNISED ***");
 				}
 			}catch(InterruptedException e){
 				ExchangeSimulator.logger.severe("TAQ NOTIFICATION ENGINE HAS BEEN INTERRUPTED..." + "\n" + e.getStackTrace().toString());

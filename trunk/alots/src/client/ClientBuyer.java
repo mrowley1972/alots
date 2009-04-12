@@ -37,6 +37,11 @@ public class ClientBuyer implements Notifiable{
 				"; price: " + price + "; quantity: " + quantity);
 	}
 	
+	public void notifyQuote(String ticker, long time, double bidPrice, double askPrice){
+		System.out.println("Instrument quote notification: " + ticker + "; time: " + new Date(time) + "; Bid Price: " +
+				bidPrice + "; Ask Price: " + askPrice);
+	}
+	
 public static void main(String args[]){
 		
 		if(args.length < 2){
