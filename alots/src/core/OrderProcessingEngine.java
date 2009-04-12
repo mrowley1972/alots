@@ -1,14 +1,11 @@
+/**
+ * This class is responsible for processing orders from the orders queue in StockExchange.
+ * 
+ */
+
 package core;
 
 import java.util.concurrent.BlockingQueue;
-
-/**
- * 
- * @author Asset
- * Class that is responsible for processing orders from the orders queue in StockExchange
- * Should be ran in an individual thread
- * 
- */
 
 public class OrderProcessingEngine implements Runnable {
 
@@ -22,9 +19,14 @@ public class OrderProcessingEngine implements Runnable {
 			try{
 				Order order = submittedOrders.take();
 				order.getInstrument().processNewOrder(order);
+				
+				ExchangeSimulator.logger.info("Order " + order.getOrderID() + " for " + order.getInstrumentName() + 
+						" has been processed");
 			}
 			catch(InterruptedException e){
-				e.printStackTrace();
+				
+				ExchangeSimulator.logger.severe("ORDER PROCESSING ENGINE HAS BEEN INTERRUPTED..." + "\n" + 
+						e.getStackTrace().toString());
 			}
 		}
 	}

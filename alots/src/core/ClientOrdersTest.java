@@ -4,6 +4,13 @@ import java.util.concurrent.LinkedBlockingQueue;
 import org.testng.annotations.*;
 import org.testng.Assert;
 
+import core.ClientOrders;
+import core.Instrument;
+import core.Order;
+import core.TAQNotification;
+import core.Order.Side;
+import core.Order.Type;
+
 public class ClientOrdersTest {
 
 	int clientID;

@@ -68,7 +68,7 @@ public class ExchangeSimulator implements IExchangeSimulator{
 	//state of the stock exchange
 	private boolean started = false;
 	
-	private static Logger logger;
+	protected static Logger logger;
 	private static FileHandler fileTxt;
 	private static SimpleFormatter formatterTxt;
 	

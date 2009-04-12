@@ -4,6 +4,8 @@ import org.testng.annotations.*;
 import org.testng.Assert;
 
 import common.IOrder;
+import core.ExchangeSimulator;
+import core.Order;
 
 public class ExchangeSimulatorTest {
 
