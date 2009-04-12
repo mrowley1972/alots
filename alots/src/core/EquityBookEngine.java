@@ -259,15 +259,22 @@ public class EquityBookEngine implements BookEngine {
 					instrument.updateAverageSellPrice(quantity, price);
 					 
 					logger.info("Matched order " + order.getOrderID() + "; quantity: " + quantity + "; price " + price + " @ " + new Date(time));
-					//put into pushing queue for client notifications of both orders
+					
+					//notify clients about updated orders
 					updatedOrders.add(order); updatedOrders.add(curOrder);
 					
-					//create new TAQNotification object about this trade
-					TAQNotification notification = new TAQNotification(TAQNotification.Type.TRADE, instrument.getTicker(), 
+					//create new trade notification
+					TAQNotification tradeNotification = new TAQNotification(TAQNotification.NotificationType.TRADE, instrument.getTicker(), 
 							time, price, quantity, Order.Side.SELL);
-					notifications.add(notification);
+					notifications.add(tradeNotification);
+					
+					//create new quote notification
+					TAQNotification quoteNotification = new TAQNotification(TAQNotification.NotificationType.QUOTE, instrument.getTicker(), 
+							time, instrument.getBidPriceAtDepth(0), instrument.getAskPriceAtDepth(0));
+					notifications.add(quoteNotification);
 					
 					logger.info("Trade notification generated @ " + new Date(time));
+					logger.info("Quote notification generated @ " + new Date(time));
 				}
 				//need to break to avoid going through the whole book, as it is ordered
 				else{
@@ -321,15 +328,22 @@ public class EquityBookEngine implements BookEngine {
 					
 					logger.info("Matched order " + order.getOrderID() + "; quantity: " + quantity + "; price " + price + " @ " + new Date(time));
 					
-					//put into pushing queue for client notifications of both orders
+					//notify clients about updated orders
 					updatedOrders.add(order); updatedOrders.add(curOrder);
-					
-					//create new TAQNotification about this trade
-					TAQNotification notification = new TAQNotification(TAQNotification.Type.TRADE, instrument.getTicker(), 
+				
+					//create new trade notification
+					TAQNotification tradeNotification = new TAQNotification(TAQNotification.NotificationType.TRADE, instrument.getTicker(), 
 							time, price, quantity, Order.Side.BUY);
-					notifications.add(notification);
+					notifications.add(tradeNotification);
+					
+					//create new quote notification
+					TAQNotification quoteNotification = new TAQNotification(TAQNotification.NotificationType.QUOTE, instrument.getTicker(), 
+							time, instrument.getBidPriceAtDepth(0), instrument.getAskPriceAtDepth(0));
+					notifications.add(quoteNotification);
 					
 					logger.info("Trade notification generated @ " + new Date(time));
+					logger.info("Quote notification generated @ " + new Date(time));
+					
 				} 
 				//need to break to avoid going through the whole book as it is ordered
 				else{

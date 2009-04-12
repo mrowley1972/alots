@@ -13,16 +13,23 @@ import java.util.Date;
 
 public class TAQNotification {
 
-	public enum Type{TRADE, QUOTE};
+	public enum NotificationType{TRADE, QUOTE};
 	
-	private Type type;
+	private NotificationType type;
 	private String ticker;
 	private long time;
+	
+	//variants for Trade notification
 	private double price;
 	private long quantity;
 	private Order.Side side;
 	
-	public TAQNotification(Type type, String ticker, long time, double price, long quantity, Order.Side side){
+	//variants for Quote notification
+	private double bidPrice;
+	private double askPrice;
+	
+	//constructor for Trade Notification
+	public TAQNotification(NotificationType type, String ticker, long time, double price, long quantity, Order.Side side){
 		this.type = type;
 		this.ticker = ticker;
 		this.time = time;
@@ -30,8 +37,18 @@ public class TAQNotification {
 		this.quantity = quantity;
 		this.side = side;
 	}
+	
+	//constructor for Quote notification
+	public TAQNotification(NotificationType type, String ticker, long time, double bidPrice, double askPrice){
+		
+		this.type = type;
+		this.ticker = ticker;
+		this.time = time;
+		this.bidPrice = bidPrice;
+		this.askPrice = askPrice;
+	}
 
-	public Type getType() {
+	public NotificationType getType() {
 		return type;
 	}
 
@@ -47,7 +64,7 @@ public class TAQNotification {
 		return price;
 	}
 
-	public double getQuantity() {
+	public long getQuantity() {
 		return quantity;
 	}
 
@@ -55,9 +72,22 @@ public class TAQNotification {
 		return side;
 	}
 	
-	public String toString(){
-		return ticker + " Type: " + type + " Price: " + price + " Quantity: " + quantity + " Side: " + 
-		side + " Time: " + new Date(time) ;
+	public double getBidPrice(){
+		return bidPrice;
 	}
-
+	
+	public double getAskPrice(){
+		return askPrice;
+	}
+	
+	public String toString(){
+		
+		if(type == NotificationType.TRADE){
+			return ticker + " Type: " + type + " Price: " + price + " Quantity: " + quantity + " Side: " + 
+			side + " Time: " + new Date(time) ;
+		}
+		
+		return ticker + " Type: " + type + " Bid Price: " + bidPrice +  " Ask Price: " + askPrice;
+		
+	}
 }

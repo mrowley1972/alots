@@ -36,7 +36,7 @@ public class Instrument implements Serializable{
 	protected List<Order> partiallyFilledOrders;
 	
 	private BookEngine bookEngine;
-	private String tickerSymbol;
+	private String ticker;
 	private double lastPrice;
 	
 	private long bidVolume;
@@ -76,7 +76,7 @@ public class Instrument implements Serializable{
 	 */
 	public Instrument(String tickerSymbol, BlockingQueue<Order> updatedOrders, 
 			BlockingQueue<TAQNotification> notifications){
-		this.tickerSymbol = tickerSymbol.toUpperCase();
+		this.ticker = tickerSymbol.toUpperCase();
 		bidLimitOrders = new Vector<Order>();
 		askLimitOrders = new Vector<Order>();
 		filledOrders = new Vector<Order>();
@@ -172,7 +172,7 @@ public class Instrument implements Serializable{
 	 * @return this instrument's ticker symbol
 	 */
 	protected String getTicker(){
-		return tickerSymbol;
+		return ticker;
 	}
 	
 	/**
@@ -468,7 +468,7 @@ public class Instrument implements Serializable{
 	}
 	
 	public String toString(){
-		return tickerSymbol;
+		return ticker;
 	}
 	
 }
