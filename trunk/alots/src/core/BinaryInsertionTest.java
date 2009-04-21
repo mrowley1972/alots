@@ -4,14 +4,11 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.testng.annotations.*;
-import org.testng.Assert;
 
 import common.IOrder;
 import core.Instrument;
 import core.Order;
 import core.TAQNotification;
-import core.Order.Side;
-import core.Order.Type;
 
 public class BinaryInsertionTest {
 	

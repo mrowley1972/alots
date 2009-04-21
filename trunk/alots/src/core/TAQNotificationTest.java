@@ -9,8 +9,7 @@ import org.testng.annotations.*;
 import core.Instrument;
 import core.Order;
 import core.TAQNotification;
-import core.Order.Side;
-import core.TAQNotification.NotificationType;
+
 
 public class TAQNotificationTest {
 

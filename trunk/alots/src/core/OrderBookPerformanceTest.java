@@ -7,8 +7,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import core.Instrument;
 import core.Order;
 import core.TAQNotification;
-import core.Order.Side;
-import core.Order.Type;
+
 
 
 public class OrderBookPerformanceTest {
