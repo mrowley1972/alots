@@ -8,8 +8,7 @@ import org.testng.annotations.*;
 import core.Instrument;
 import core.Order;
 import core.TAQNotification;
-import core.Order.Side;
-import core.Order.Type;
+
 
 public class OrderTest {
 	

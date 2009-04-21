@@ -10,8 +10,7 @@ import common.IOrder;
 import core.Instrument;
 import core.Order;
 import core.TAQNotification;
-import core.Order.Side;
-import core.Order.Type;
+
 
 public class InstrumentTest {
 
