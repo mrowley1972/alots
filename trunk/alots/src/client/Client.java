@@ -13,7 +13,7 @@ import java.util.List;
 import common.Notifiable;
 import common.IExchangeSimulator;
 import common.IOrder;
-import core.Order;
+
 
 public class Client implements Notifiable{
 	
@@ -38,7 +38,7 @@ public class Client implements Notifiable{
 				"; executed quantity: " + quantity);
 	}
 	
-	public void notifyTrade(String ticker, long time, Order.Side side, double price, double quantity){
+	public void notifyTrade(String ticker, long time, String side, double price, double quantity){
 		System.out.println("Instrument trade notification: " + ticker + "; time: " + new Date(time) + "; side: " + side + 
 				"; price: " + price + "; quantity: " + quantity);
 	}
