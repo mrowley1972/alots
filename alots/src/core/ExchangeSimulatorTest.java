@@ -1,5 +1,8 @@
 package core;
 import java.util.List;
+
+import javax.swing.filechooser.FileSystemView;
+
 import org.testng.annotations.*;
 import org.testng.Assert;
 
@@ -14,7 +17,8 @@ public class ExchangeSimulatorTest {
 	
 	@BeforeClass
 	public void setUp(){
-		exchange = new ExchangeSimulator();
+		
+		exchange = new ExchangeSimulator(FileSystemView.getFileSystemView().getHomeDirectory().toString());
 	}
 	
 	@Test

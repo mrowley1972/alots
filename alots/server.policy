@@ -1,0 +1,4 @@
+grant codeBase "file:/Users/Asset/server/build/" {
+	permission java.security.AllPermission;
+};
+

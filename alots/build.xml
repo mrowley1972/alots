@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<project name="alots" default="jar" basedir=".">
+
+	<property name="src" value="src"/>
+		<property name="build" value ="build"/>
+		<property name="lib" value="lib"/>
+
+	<target name="clean" description="Removes previous build">
+		<delete dir="${build}" verbose="true"/>
+		<delete dir="${lib}" verbose="true"/>
+	</target>
+	
+	<target name="init">
+		<mkdir dir="${build}"/>
+		<mkdir dir="${lib}"/>
+	</target>
+	
+	<target name="compile" depends="init">
+		<!-- Compile the Java code -->
+		
+		<javac srcdir="${src}" destdir="${build}" verbose="true">
+			<classpath>
+				<pathelement location="/Applications/eclipse/plugins/org.testng.eclipse_5.8.0.2/lib/testng-jdk15.jar"/>
+			</classpath>
+		</javac>
+	</target>
+	
+	<target name="jar" depends="compile">
+		<!--Build the jar file -->
+		<jar basedir="${build}/common" destfile="${lib}/common.jar"/>
+	</target>
+</project>
+

@@ -95,6 +95,7 @@ public class ExchangeSimulator implements IExchangeSimulator{
 	//state of the stock exchange
 	private boolean started = false;
 	
+	protected static String logFilePath;
 	protected static Logger logger;
 	private static FileHandler fileTxt;
 	private static SimpleFormatter formatterTxt;
@@ -103,7 +104,7 @@ public class ExchangeSimulator implements IExchangeSimulator{
 	/**
 	 * Creates a <code>StockExchange</code> with default implementation
 	 */
-	public ExchangeSimulator(){
+	public ExchangeSimulator(String logFilePath){
 		//Initialise all containers
 		clientOrdersDB = new ConcurrentHashMap<Integer, ClientOrders>();
 		registeredInstruments = new ConcurrentHashMap<String, Instrument>();
@@ -122,7 +123,8 @@ public class ExchangeSimulator implements IExchangeSimulator{
 		ne = new Thread(taqNotificationEngine);
 		
 		//configure logging by specifying fully qualified path and file's name
-		configureLogging("/Users/Asset/exchange/exchangeLog.txt");
+		ExchangeSimulator.logFilePath = logFilePath;
+		configureLogging(logFilePath + "exchange.log");
 		
 	}
 	
@@ -756,25 +758,29 @@ public class ExchangeSimulator implements IExchangeSimulator{
 	
 	//This is a sample main method to show a template of how this class should be initialised with RMI
 	public static void main(String args[]){
-		if(args.length < 1){
-			System.out.println("Usage: ExchangeSimulator <rmi_port>");
+		if(args.length < 2){
+			System.out.println("Usage: ExchangeSimulator <rmi_port> <log_file_path>");
 			System.exit(1);
 		}
+		//extract port and log file path
 		int rmiPort = Integer.parseInt(args[0]);
+		String logFilePath = new String(args[1]);
+		
+		//start the security manager
 		if(System.getSecurityManager() == null){
 			System.setSecurityManager(new RMISecurityManager());
 		}
 		
 		try{
 			String name = "ExchangeSimulator";
-			ExchangeSimulator exchange = new ExchangeSimulator();
+			ExchangeSimulator exchange = new ExchangeSimulator(logFilePath);
 			exchange.start();
 			
 			//export stub with anonymous port - will be assigned by OS at runtime
 			IExchangeSimulator stub = (IExchangeSimulator) UnicastRemoteObject.exportObject(exchange, 0);
 			Registry registry = LocateRegistry.getRegistry(rmiPort);
 			registry.rebind(name, stub);
-			System.out.println("*** Exchange Simulator is up and running on the server ***");
+			System.out.println("*** Exchange Simulator is running on the server ***");
 		}
 		catch(Exception e){
 			System.out.println("ExchangeSimulator exception: ");

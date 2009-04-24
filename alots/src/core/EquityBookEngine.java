@@ -24,6 +24,8 @@ public class EquityBookEngine implements BookEngine {
 
 	private static final long serialVersionUID = -6028495077079186305L;
 	
+	private String instrumentTicker;
+	
 	private List<Order> bidLimitOrders;
 	private List<Order> askLimitOrders;
 	private List<Order> filledOrders;
@@ -39,7 +41,7 @@ public class EquityBookEngine implements BookEngine {
 	 */
 	public EquityBookEngine(List<Order> bidLimitOrders, List<Order> askLimitOrders, List<Order> filledOrders, 
 			List<Order> partiallyFilledOrders, BlockingQueue<Order> updatedOrders, 
-			BlockingQueue<TAQNotification> notifications){
+			BlockingQueue<TAQNotification> notifications, String instrumentTicker){
 		
 		this.bidLimitOrders = bidLimitOrders;
 		this.askLimitOrders = askLimitOrders;
@@ -48,10 +50,16 @@ public class EquityBookEngine implements BookEngine {
 		this.updatedOrders = updatedOrders;
 		this.notifications = notifications;
 		
+		this.instrumentTicker = instrumentTicker;
+		
 		//specify location of the log file
-		configureLogging("/Users/Asset/exchange/equityBookEngineLog.txt");
+		configureLogging(ExchangeSimulator.logFilePath + getInstrumentTicker() + "BookEngine.log");
 		
 		logger.info("Equity Book Engine is up and running...");
+	}
+	
+	private String getInstrumentTicker(){
+		return instrumentTicker;
 	}
 	
 	private void configureLogging(String logFilePath){

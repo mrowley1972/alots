@@ -37,7 +37,7 @@ public class TAQNotificationEngine implements Runnable{
 				//need to make sure that this instrument has some client subscribed to it
 				if(notification.getType() == TAQNotification.NotificationType.TRADE && clients != null){
 					for(Notifiable client : clients){
-						client.notifyTrade(ticker, time, notification.getSide(), notification.getPrice(), notification.getQuantity());
+						client.notifyTrade(ticker, time, notification.getSide().toString(), notification.getPrice(), notification.getQuantity());
 						
 						ExchangeSimulator.logger.info("Trade notification sent to all subscribers: " + ticker + "; price: " + notification.getPrice() + 
 								"; quantity: " + notification.getQuantity() + "; side: " + notification.getSide());
@@ -54,9 +54,6 @@ public class TAQNotificationEngine implements Runnable{
 					}
 				}
 				
-				else{
-					System.out.println("*** NOTIFICATION TYPE IS NOT RECOGNISED ***");
-				}
 			}catch(InterruptedException e){
 				ExchangeSimulator.logger.severe("TAQ NOTIFICATION ENGINE HAS BEEN INTERRUPTED..." + "\n" + e.getStackTrace().toString());
 				

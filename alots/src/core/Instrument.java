@@ -82,8 +82,9 @@ public class Instrument implements Serializable{
 		filledOrders = new Vector<Order>();
 		partiallyFilledOrders = new Vector<Order>();
 		
+		//start a new book processing engine for this instrument
 		bookEngine = new EquityBookEngine(bidLimitOrders, askLimitOrders, filledOrders, partiallyFilledOrders, 
-				updatedOrders, notifications);
+				updatedOrders, notifications, ticker);
 		
 		//Make sure all variables are initialized to zero from the beginning
 		bidVolume = askVolume = buyVolume = sellVolume = 0;
