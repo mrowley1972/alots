@@ -27,7 +27,7 @@
 	
 	<target name="jar" depends="compile">
 		<!--Build the jar file -->
-		<jar basedir="${build}/common" destfile="${lib}/common.jar"/>
+		<jar basedir="${build}" includes="common/*.class" destfile="${lib}/common.jar"/>
 	</target>
 </project>
 
