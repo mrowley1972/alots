@@ -23,7 +23,6 @@ public interface IExchangeSimulator extends Remote {
 	/**
 	 * Create an instrument to be traded on the exchange. If the instrument is already being traded, new instrument is not created.
 	 * @param tickerSymbol a correct ticker symbol for this instrument
-	 * @return void
 	 */
 	void registerInstrument(String tickerSymbol) throws RemoteException;
 	
