@@ -38,7 +38,7 @@ public class TAQNotificationTest {
 		Assert.assertEquals(notification.getType(), TAQNotification.NotificationType.TRADE);
 		Assert.assertEquals(notification.getTicker(), "GOOG");
 		Assert.assertEquals(notification.getPrice(), 41.24);
-		Assert.assertEquals(notification.getQuantity(), 2000.0);
+		Assert.assertEquals(notification.getQuantity(), 2000);
 		Assert.assertEquals(notification.getTime(), time);
 		
 		System.out.println(notification);

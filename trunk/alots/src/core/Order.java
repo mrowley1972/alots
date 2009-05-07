@@ -25,6 +25,7 @@ public class Order implements IOrder{
 	 */
 	public enum Side{ BUY, SELL}
 	public enum Type{ LIMIT, MARKET}
+	public enum Status{NOT_PROCESSED,CANCELLED, PARTIALLY_FILLED, FILLED, REJECTED}
 	
 	/*
 	 * A class to hold an order fill for this order only
@@ -59,6 +60,7 @@ public class Order implements IOrder{
 	
 	private final Side side;
 	private final Type type;
+	private Status status;
 	
 	private int clientID;
 	private long orderID;
@@ -76,6 +78,8 @@ public class Order implements IOrder{
 		this.instrument = instrument;
 		this.side = side;
 		this.type = type;
+		this.status = Status.NOT_PROCESSED;
+		
 		this.quantity = quantity;
 		this.price = price;
 
@@ -97,6 +101,14 @@ public class Order implements IOrder{
 	
 	public Side side(){ 
 		return side;
+	}
+	
+	public Status status(){
+		return status;
+	}
+	
+	protected void setStatus(Status status){
+		this.status = status;
 	}
 	
 	
@@ -168,6 +180,11 @@ public class Order implements IOrder{
 	public double getAverageExecutedPrice(){
 		double avgPrice = 0.0;
 		long volume = 0;
+		
+		//if no trades took place, needs to return zero
+		//otherwise NaN is returned 
+		if(trades.size() == 0)
+			return 0;
 		
 		for(OrderTrade trade: trades){
 			avgPrice += (trade.getTradePrice()*trade.getVolume());

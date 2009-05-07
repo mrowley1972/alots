@@ -87,6 +87,7 @@ public class EquityBookEngine implements BookEngine {
 				if(o.equals(order)){
 					iter.remove();
 					o.cancel();
+					o.setStatus(core.Order.Status.CANCELLED);
 					updatedOrders.add(o);
 					logger.info("Cancelled order " + order.getOrderID());
 					return o;
@@ -102,6 +103,7 @@ public class EquityBookEngine implements BookEngine {
 				if(o.equals(order)){
 					iter.remove();
 					o.cancel();
+					o.setStatus(core.Order.Status.CANCELLED);
 					updatedOrders.add(o);
 					logger.info("Cancelled order " + order.getOrderID());
 					return o;
@@ -119,8 +121,19 @@ public class EquityBookEngine implements BookEngine {
 		
 		if(order.side() == core.Order.Side.BUY){
 			//get the market current price for the market order
-			if(order.type() == core.Order.Type.MARKET && askLimitOrders.size()>0)
-				order.setPrice(askLimitOrders.get(0).getPrice());
+			if(order.type() == core.Order.Type.MARKET){
+				if(askLimitOrders.size() > 0)
+					order.setPrice(askLimitOrders.get(0).getPrice());
+				
+				//if there is no order on the opposite side of the book, then we need to immediately reject the order
+				else{
+						order.cancel();
+						order.setStatus(core.Order.Status.REJECTED);
+						updatedOrders.add(order);
+						logger.info("Rejected order " + order.getOrderID());
+						return;
+				}
+			}
 			
 			//Update instrument's immediate statistics
 			instrument.updateBidVWAP(order.getQuantity(), order.getPrice());
@@ -134,12 +147,22 @@ public class EquityBookEngine implements BookEngine {
 				addToFilledOrders(order);
 			else
 				insertBuyOrder(order);
-			
 		}
 		else{
 			//get the market current price for the market order
-			if(order.type() == core.Order.Type.MARKET && bidLimitOrders.size()>0)
-				order.setPrice(bidLimitOrders.get(0).getPrice());
+			if(order.type() == core.Order.Type.MARKET){
+				if(bidLimitOrders.size() > 0)
+					order.setPrice(bidLimitOrders.get(0).getPrice());
+				
+				//if there is no order on the opposite side of the book, then we need to immediately reject the order
+				else{
+						order.cancel();
+						order.setStatus(core.Order.Status.REJECTED);
+						updatedOrders.add(order);
+						logger.info("Rejected order " + order.getOrderID());
+						return;
+				}
+			}
 			
 			//Update instrument's immediate statistics
 			instrument.updateAskVWAP(order.getQuantity(), order.getPrice());
@@ -167,25 +190,6 @@ public class EquityBookEngine implements BookEngine {
 		bidLimitOrders.add(i, order);
 		logger.info("Order " + order.getOrderID() + " inserted into bid order book");
 		
-		
-		//if something goes wrong with binarySearch method, can use this commented out linear search algorithm - much slower version
-			/*
-			int i;
-			double price = order.getPrice();
-			Long entryTime = order.getEntryTime();
-			
-			for(i=0; i<bidLimitOrders.size(); i++){
-				Order curOrder = bidLimitOrders.get(i);
-			
-				if((curOrder.getPrice() < price) || (curOrder.getPrice()==price && 
-						((Long)curOrder.getEntryTime()).compareTo(entryTime)>0)){
-					bidLimitOrders.add(i, order);
-					break;
-				}
-			}
-			if(i == (bidLimitOrders.size()))
-				bidLimitOrders.add(order);
-	*/
 	}
 	
 	public void insertSellOrder(Order order){
@@ -195,25 +199,6 @@ public class EquityBookEngine implements BookEngine {
 		askLimitOrders.add(i, order);
 		logger.info("Order " + order.getOrderID() + " inserted into ask order book");
 		
-		
-		/*
-		int i;
-		double price = order.getPrice();
-		Long entryTime = order.getEntryTime();
-		
-		for(i=0; i<askLimitOrders.size(); i++){
-			Order curOrder = askLimitOrders.get(i);
-		
-			if((curOrder.getPrice() > price) || (curOrder.getPrice()==price && 
-					((Long)curOrder.getEntryTime()).compareTo(entryTime)>0)){
-				askLimitOrders.add(i, order);
-				break;
-			}
-		}
-		if(i == (askLimitOrders.size()))
-			askLimitOrders.add(order);
-			
-		*/
 	}
 	
 	//finds an index where to insert this order. BinarySearch is used, but the order must never be found, as every
@@ -254,9 +239,11 @@ public class EquityBookEngine implements BookEngine {
 					if(curOrder.isFilled()){
 						iter.remove();
 						addToFilledOrders(curOrder);
+						curOrder.setStatus(core.Order.Status.FILLED);
 					}
 					else{
 						addToPartiallyFilledOrders(curOrder);
+						curOrder.setStatus(core.Order.Status.PARTIALLY_FILLED);
 					}
 					
 					//update instrument statistics
@@ -268,6 +255,13 @@ public class EquityBookEngine implements BookEngine {
 					 
 					logger.info("Matched order " + order.getOrderID() + "; quantity: " + quantity + "; price " + price + " @ " + new Date(time));
 					
+					/*
+					 * Deal with all the notifications - Order and TAQ
+					 */
+					if(order.isFilled())
+						order.setStatus(core.Order.Status.FILLED);
+					else
+						order.setStatus(core.Order.Status.PARTIALLY_FILLED);
 					//notify clients about updated orders
 					updatedOrders.add(order); updatedOrders.add(curOrder);
 					
@@ -322,8 +316,10 @@ public class EquityBookEngine implements BookEngine {
 					if(curOrder.isFilled()){
 						iter.remove();
 						addToFilledOrders(curOrder);
+						curOrder.setStatus(core.Order.Status.FILLED);
 					}else{
 						addToPartiallyFilledOrders(curOrder);
+						curOrder.setStatus(core.Order.Status.PARTIALLY_FILLED);
 					}
 					addToPartiallyFilledOrders(order);
 					
@@ -336,6 +332,13 @@ public class EquityBookEngine implements BookEngine {
 					
 					logger.info("Matched order " + order.getOrderID() + "; quantity: " + quantity + "; price " + price + " @ " + new Date(time));
 					
+					/*
+					 * Deal with all the notifications - Order and TAQ 
+					 */
+					if(order.isFilled())
+						order.setStatus(core.Order.Status.FILLED);
+					else
+						order.setStatus(core.Order.Status.PARTIALLY_FILLED);
 					//notify clients about updated orders
 					updatedOrders.add(order); updatedOrders.add(curOrder);
 				

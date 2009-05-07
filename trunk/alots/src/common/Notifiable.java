@@ -10,7 +10,7 @@ import java.rmi.RemoteException;
 
 public interface Notifiable extends Remote{
 
-	public void notifyOrder(long orderID, double price, double quantity) throws RemoteException;
+	public void notifyOrder(long orderID, double price, double quantity, String status) throws RemoteException;
 	
 	public void notifyTrade(String ticker, long time, String side, double price, double quantity) 
 				throws RemoteException;
