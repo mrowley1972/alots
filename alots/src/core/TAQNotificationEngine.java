@@ -12,6 +12,7 @@ package core;
 import java.rmi.RemoteException;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.concurrent.BlockingQueue;
 import common.Notifiable;
 
@@ -33,35 +34,43 @@ public class TAQNotificationEngine implements Runnable{
 				long time = notification.getTime();
 								
 				ArrayList<Notifiable> clients = instrumentSubscribers.get(ticker);
+				Iterator<Notifiable> iter;
 				
-				//need to make sure that this instrument has some client subscribed to it
+				//forced to use iterator because it is the only way to concurrently modify clients container if RemoteException occurs
 				if(notification.getType() == TAQNotification.NotificationType.TRADE && clients != null){
-					for(Notifiable client : clients){
-						client.notifyTrade(ticker, time, notification.getSide().toString(), notification.getPrice(), notification.getQuantity());
-						
-						ExchangeSimulator.logger.info("Trade notification sent to all subscribers: " + ticker + "; price: " + notification.getPrice() + 
-								"; quantity: " + notification.getQuantity() + "; side: " + notification.getSide());
+					iter = clients.iterator();
+					while(iter.hasNext()){
+						try{
+							iter.next().notifyTrade(ticker, time, notification.getSide().toString(), notification.getPrice(), notification.getQuantity());
+							
+							ExchangeSimulator.logger.info("Trade notification sent to all subscribers: " + ticker + "; price: " + notification.getPrice() + 
+									"; quantity: " + notification.getQuantity() + "; side: " + notification.getSide());
+							
+						}catch(RemoteException e){
+							iter.remove();
+							ExchangeSimulator.logger.warning("Connection with a client is lost..." + "\n" + e.getStackTrace().toString());
+						}
 					}
 				}
 				
-				if(notification.getType() == TAQNotification.NotificationType.QUOTE && clients != null)
-				{
-					for(Notifiable client : clients){
-						client.notifyQuote(ticker, time, notification.getBidPrice(), notification.getAskPrice());
-						
-						ExchangeSimulator.logger.info("Quote notification sent to all subscribers: " + ticker + "; bid price: " + notification.getBidPrice() +
-								"; ask price: " + notification.getAskPrice());
+				if(notification.getType() == TAQNotification.NotificationType.QUOTE && clients != null){
+					iter = clients.iterator();
+					while(iter.hasNext()){
+						try{
+							iter.next().notifyQuote(ticker, time, notification.getBidPrice(), notification.getAskPrice());
+							ExchangeSimulator.logger.info("Quote notification sent to all subscribers: " + ticker + "; bid price: " + notification.getBidPrice() +
+									"; ask price: " + notification.getAskPrice());
+						}catch(RemoteException e){
+							iter.remove();
+							ExchangeSimulator.logger.warning("Connection with a client is lost..." + "\n" + e.getStackTrace().toString());
+						}
 					}
 				}
 				
 			}catch(InterruptedException e){
 				ExchangeSimulator.logger.severe("TAQ NOTIFICATION ENGINE HAS BEEN INTERRUPTED..." + "\n" + e.getStackTrace().toString());
 				
-			}catch(RemoteException e){
-				ExchangeSimulator.logger.warning("Connection with a client is lost..." + "\n" + e.getStackTrace().toString());
 			}
 		}
 	}
-	
-
 }

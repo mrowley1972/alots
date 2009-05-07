@@ -9,9 +9,12 @@
 
 package core;
 
+import java.io.Serializable;
 import java.util.Date;
 
-public class TAQNotification {
+public class TAQNotification implements Serializable{
+
+	private static final long serialVersionUID = 4442908068382700370L;
 
 	public enum NotificationType{TRADE, QUOTE};
 	

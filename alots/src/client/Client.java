@@ -33,9 +33,9 @@ public class Client implements Notifiable{
 
 	//This method needs to have functionality for accepting updates about orders
 	
-	public void notifyOrder(long orderID, double price, double quantity){
+	public void notifyOrder(long orderID, double price, double quantity, String status){
 		System.out.println("Order notification: " + orderID + "; average executed price: " + price +
-				"; executed quantity: " + quantity);
+				"; executed quantity: " + quantity + "; status: " + status);
 	}
 	
 	public void notifyTrade(String ticker, long time, String side, double price, double quantity){
@@ -100,6 +100,7 @@ public class Client implements Notifiable{
 			
 			//Issue some buy orders
 			System.out.println("Issuing buy orders...");
+			System.out.println("Order: " + exchange.submitOrder(msft, client.getClientID(), "buy", "market", 20.8, 500));
 			System.out.println("Order: " + exchange.submitOrder(msft, client.getClientID(), "buy", "limit", 20.8, 500));
 			System.out.println("Order: " + exchange.submitOrder(msft, client.getClientID(), "buy", "limit", 21.8, 1000));
 			System.out.println("Order: " + exchange.submitOrder(msft, client.getClientID(), "buy", "limit", 20.5, 500));

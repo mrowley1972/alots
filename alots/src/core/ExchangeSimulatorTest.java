@@ -90,7 +90,7 @@ public class ExchangeSimulatorTest {
 			Assert.assertEquals(exchange.getInstrument("MSFT").getPartiallyFilledOrders().size(), 0);
 			System.out.println();
 			
-			Assert.assertEquals(exchange.getInstrumentBidVolume("MSFT"), 500);
+			Assert.assertEquals(exchange.getInstrumentBidVolume("MSFT"), 0);
 			Assert.assertEquals(exchange.getInstrumentAskVolume("MSFT"), 0);
 			Assert.assertEquals(exchange.getInstrumentBuyVolume("MSFT"), 0);
 			Assert.assertEquals(exchange.getInstrumentSellVolume("MSFT"), 1000);

@@ -22,6 +22,7 @@ public class ClientOrdersNotificationEngine implements Runnable {
 	//container holding all updated orders
 	private BlockingQueue<Order> updatedOrders;
 	
+	
 	public ClientOrdersNotificationEngine(AbstractMap<Integer, Notifiable> registeredClients, BlockingQueue<Order> updatedOrders){
 		this.registeredClients = registeredClients;
 		this.updatedOrders = updatedOrders;
@@ -34,7 +35,7 @@ public class ClientOrdersNotificationEngine implements Runnable {
 				Notifiable client = registeredClients.get(order.getClientID());
 				
 				if(client != null){
-					client.notifyOrder(order.getOrderID(), order.getAverageExecutedPrice(), order.getExecutedQuantity());
+					client.notifyOrder(order.getOrderID(), order.getAverageExecutedPrice(), order.getExecutedQuantity(), order.status().toString());
 					ExchangeSimulator.logger.info("Client " + order.getClientID() + " is notified of order " + order.getOrderID());
 				}
 				
